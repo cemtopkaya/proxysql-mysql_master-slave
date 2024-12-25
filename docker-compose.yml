@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # MySQL Master
+  mysql-master:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mydatabase
+    volumes:
+      - master_data:/var/lib/mysql
+      - ./mysql-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
+    networks:
+      - mysql-network
+
+  # MySQL Slave
+  mysql-slave:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_SLAVE: 1
+      MYSQL_MASTER_HOST: mysql-master
+      MYSQL_MASTER_USER: root
+      MYSQL_MASTER_PASSWORD: root_password
+      MYSQL_MASTER_PORT: 3306
+    volumes:
+      - slave_data:/var/lib/mysql
+    networks:
+      - mysql-network
+    depends_on:
+      - mysql-master
+
+  # ProxySQL
+  proxysql:
+    image: proxysql/proxysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf
+    ports:
+      - "6033:6033"
+      - "6032:6032" # Admin arayüzü için
+    networks:
+      - mysql-network
+    depends_on:
+      - mysql-master
+      - mysql-slave
+
+  # phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_HOST: proxysql
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+    ports:
+      - "8080:80"
+    networks:
+      - mysql-network
+
+networks:
+  mysql-network:
+
+volumes:
+  master_data:
+  slave_data:
