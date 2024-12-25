@@ -1,31 +1,36 @@
 version: '3.8'
 
 services:
+
+# Önce mysql master servisini başlat
+# - monitor_user ve monitor_password ile monitor kullanıcısı oluşturuyoruz.
+# - proxysql
+
+# ve ardından mysql slave servislerini oluşturuyoruz.
+# Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
+
   # MySQL Master
   mysql-master:
     image: mysql:5.7
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=ROW
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: mydatabase
     volumes:
       - master_data:/var/lib/mysql
-      - ./mysql-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
+      - ./master-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
     networks:
       - mysql-network
 
   # MySQL Slave
   mysql-slave:
     image: mysql:5.7
+    command: --server-id=2 --relay-log=mysql-relay-bin --log-bin=mysql-bin --binlog-format=ROW
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: mydatabase
-      MYSQL_SLAVE: 1
-      MYSQL_MASTER_HOST: mysql-master
-      MYSQL_MASTER_USER: root
-      MYSQL_MASTER_PASSWORD: root_password
-      MYSQL_MASTER_PORT: 3306
     volumes:
       - slave_data:/var/lib/mysql
+      - ./slave2-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
     networks:
       - mysql-network
     depends_on:
@@ -34,13 +39,14 @@ services:
   # ProxySQL
   proxysql:
     image: proxysql/proxysql
+    container_name: proxysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
     volumes:
       - ./proxysql.cnf:/etc/proxysql.cnf
     ports:
-      - "6033:6033"
       - "6032:6032" # Admin arayüzü için
+      - "6033:6033" # MySQL bağlantı portu
     networks:
       - mysql-network
     depends_on:
@@ -52,12 +58,15 @@ services:
     image: phpmyadmin/phpmyadmin
     environment:
       PMA_HOST: proxysql
-      PMA_USER: root
-      PMA_PASSWORD: root_password
+      PMA_USER: app_user
+      PMA_PASSWORD: app_pass123
+      PMA_PORT: 6033
     ports:
       - "8080:80"
     networks:
       - mysql-network
+    depends_on:
+      - proxysql
 
 networks:
   mysql-network:

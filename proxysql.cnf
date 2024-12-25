@@ -37,8 +37,6 @@ mysql_variables=
   stacksize=1048576
   server_version="5.7"
   connect_timeout_server=3000
-  monitor_username="root"
-  monitor_password="root_password"
   monitor_history=600000
   monitor_connect_interval=60000
   monitor_ping_interval=10000
@@ -48,13 +46,14 @@ mysql_variables=
   monitor_password="monitor_pass123"
 }
 
+# Write için Mysql MASTER > hostgroup = 1
+# Read için Mysql SLAVE > hostgroup = 2
 mysql_servers =
 (
   { address="mysql-master" , port=3306 , hostgroup=1, max_connections=100 },
   { address="mysql-slave"  , port=3306 , hostgroup=2, max_connections=100 }
 )
 
-#  { username = "root" , password = "root_password" , default_hostgroup = 1 , active = 1 }
 mysql_users =
 (
   { username = "app_user" , password = "app_pass123" , default_hostgroup = 1 , active = 1 }
