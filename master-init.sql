@@ -56,9 +56,6 @@ CREATE USER IF NOT EXISTS 'app_user'@'%' IDENTIFIED BY 'app_pass123';
 --     >>> GRANT ALL PRIVILEGES ON `redmine`.* TO 'app_user'@'%';
 GRANT ALL PRIVILEGES ON *.* TO 'app_user'@'%' WITH GRANT OPTION; 
 
--- Aşağıdaki kısım sadece php my adminde tüm veritabanlarını görmek için eklendi
-GRANT ALL ON information_schema.* TO 'app_user'@'%';
-GRANT SELECT ON performance_schema.* TO 'app_user'@'%';
 /**
  * GRANT SUPER: GRANT komutu, MySQL kullanıcılarına ayrıcalıklar atamak için kullanılır. 
  * SUPER ayrıcalığı, kullanıcının çeşitli üst düzey işlemleri gerçekleştirmesine izin veren güçlü bir yönetim ayrıcalığıdır. 
@@ -69,9 +66,10 @@ GRANT SUPER ON *.* TO 'app_user'@'%';
 
 -- Replikasyon kullanıcısı
 CREATE USER IF NOT EXISTS 'rep_user'@'%' IDENTIFIED BY 'YourStrongPassword';
--- REPLİKASYON SLAVE yetkisi, kullanıcının ana sunucudaki binlogları okumasına ve başka bir sunucuda “slave” olarak replikasyon yapmasına imkan tanır.
-GRANT REPLICATION SLAVE ON *.* TO 'rep_user'@'%';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'rep_user'@'%';
+
 
 FLUSH PRIVILEGES;
+
 
 SET SQL_LOG_BIN=1;

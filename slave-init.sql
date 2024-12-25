@@ -15,13 +15,20 @@ CREATE USER IF NOT EXISTS 'rep_user'@'%' IDENTIFIED BY 'YourStrongPassword';
 GRANT REPLICATION SLAVE ON *.* TO 'rep_user'@'%';
 FLUSH PRIVILEGES;
 
+-- SLAVE için replikasyon işlemlerini başlatma
 STOP SLAVE;
+RESET SLAVE;
+
 CHANGE MASTER TO
-  MASTER_HOST='master_server_ip',
+  MASTER_HOST='mysql-master',
   MASTER_USER='rep_user',
+  MASTER_PORT=3306,
   MASTER_PASSWORD='YourStrongPassword',
-  MASTER_LOG_FILE='mysql-bin.000001',
+  -- MASTER_LOG_FILE='mysql-bin.000001',
   -- Replikasyon işlemlerinde MASTER_LOG_POS değeri, replikasyonun hangi noktadan başlayacağını belirler. Bu değeri doğru ayarlamak, replikasyonun doğru bir şekilde çalışması için kritik öneme sahiptir.
-  MASTER_LOG_POS=0;
+  -- MASTER_LOG_POS=0
+  ;
 
 START SLAVE;
+
+SHOW SLAVE STATUS;
