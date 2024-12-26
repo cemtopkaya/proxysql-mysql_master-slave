@@ -1,6 +1,22 @@
+# Küme
+
+## Master Slave MySQL
+
+![alt text](.vscode/readme-images/master-slave-mysql.png)
+
+## Grup Replication (Master-Master + Slave*n) MySQL
+
+Grup replikasyonu, masterless, multi-master veya active-active olarak da bilinir. Bu yapı, birden fazla master sunucusunun aynı anda aktif olmasını ve veri yazma işlemlerini gerçekleştirmesini sağlar. Slave sunucuları ise bu master sunucularından veri replikasyonu yapar.
+
+Grup replikasyonu, slave sunucuları barındırmak zorunda değildir. Bu yapı, tüm sunucuların master olarak çalıştığı bir ortam sağlar. Ancak, istenirse, bazı sunucular sadece veri okuma işlemleri için yapılandırılabilir ve bu durumda slave olarak adlandırılabilirler. Bu esneklik, sistemin ihtiyaçlarına göre yapılandırılmasına olanak tanır.
+
+![alt text](.vscode/readme-images/grup-replication.png)
+
+
 ### ProxySQL
 
 proxysql başlarken proxysql.cnf dosyasında yer alan bilgilere göre kullanıcı adı ve şifresiyle erişilebilir:
+
 ```conf
 admin_variables=
 {
@@ -9,7 +25,9 @@ admin_variables=
 }
 ```
 
+
 Aynı ayar dosyasında `mysql_servers`, `mysql_users` ve `mysql_query_rules` tablolarını çekerek oluşturacaktır:
+
 ```conf
 # Write için Mysql MASTER > hostgroup = 1
 # Read için Mysql SLAVE > hostgroup = 2
