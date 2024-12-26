@@ -1,0 +1,9 @@
+gtid_mode=ON
+enforce_gtid_consistency=ON
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+binlog_checksum=NONE
+binlog_format=ROW
+transaction_write_set_extraction=XXHASH64
+
+group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
