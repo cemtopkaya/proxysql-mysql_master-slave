@@ -310,3 +310,23 @@ docker compose down -v
 - Diğer tüm sorgular (INSERT, UPDATE, DELETE) master'a yönlendirilir
 - Slave sunucusu, master'dan gelen değişiklikleri otomatik olarak replike eder
 - phpMyAdmin üzerinden yapılan işlemler ProxySQL üzerinden gerçekleştirilir
+
+## Redmine Veritabanının İçeri Aktarılması
+
+Redmine veritabanını oluşturmak için:
+
+```bash
+docker compose exec mysql-master mysql -uroot -proot_password -e "CREATE DATABASE redmine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+Dump dosyasından içeri aktarmak için:
+
+```bash
+docker compose exec -T mysql-master mysql -uroot -proot_password redmine < redmine_dump.sql
+```
+
+Her iki slave'de de verilerin geldiğini kontrol et
+```bash
+docker compose exec mysql-slave-1 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
+docker compose exec mysql-slave-2 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
+```
