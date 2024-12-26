@@ -190,3 +190,143 @@ LOAD MYSQL QUERY RULES TO RUNTIME;       -- Kural değişikliklerini uygula
 SAVE MYSQL USERS TO DISK;                -- Kullanıcıları kalıcı kaydet
 SAVE MYSQL SERVERS TO DISK;              -- Sunucuları kalıcı kaydet
 SAVE MYSQL QUERY RULES TO DISK;          -- Kuralları kalıcı kaydet
+
+## Replikasyon Testi
+
+1. **Servislerin Durumunu Kontrol Etme**:
+```bash
+docker compose ps
+```
+
+2. **Master Durumunu Kontrol Etme**:
+```bash
+docker compose exec mysql-master mysql -uroot -proot_password -e "SHOW MASTER STATUS\G"
+```
+
+3. **Slave Durumunu Kontrol Etme**:
+```bash
+docker compose exec mysql-slave mysql -uroot -proot_password -e "SHOW SLAVE STATUS\G"
+```
+
+4. **Test Veritabanı Oluşturma**:
+```bash
+docker compose exec mysql-master mysql -uroot -proot_password -e "
+CREATE DATABASE test_db;
+USE test_db;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);"
+```
+
+5. **Test Verisi Ekleme**:
+```bash
+docker compose exec mysql-master mysql -uroot -proot_password -e "
+USE test_db;
+INSERT INTO users (name) VALUES ('John Doe');
+INSERT INTO users (name) VALUES ('Jane Smith');"
+```
+
+6. **Replikasyonu Kontrol Etme**:
+```bash
+docker compose exec mysql-slave mysql -uroot -proot_password -e "
+USE test_db;
+SELECT * FROM users;"
+```
+
+## ProxySQL Testi
+
+1. **ProxySQL Admin Arayüzüne Bağlanma**:
+```bash
+docker compose exec proxysql mysql -h127.0.0.1 -P6032 -uadmin -padmin
+```
+
+2. **Server Durumunu Kontrol Etme**:
+```sql
+SELECT * FROM mysql_servers;
+SELECT * FROM mysql_users;
+SELECT * FROM mysql_query_rules;
+```
+
+3. **ProxySQL Üzerinden Yazma Testi**:
+```bash
+docker compose exec mysql-master mysql -h proxysql -P6033 -uapp_user -papp_pass123 -e "
+USE test_db;
+INSERT INTO users (name) VALUES ('Robert Brown');"
+```
+
+4. **ProxySQL Üzerinden Okuma Testi**:
+```bash
+docker compose exec mysql-master mysql -h proxysql -P6033 -uapp_user -papp_pass123 -e "
+USE test_db;
+SELECT * FROM users;"
+```
+
+## phpMyAdmin Erişimi
+
+- URL: http://localhost:8080
+- Kullanıcı adı: app_user
+- Şifre: app_pass123
+
+## Kullanıcı Bilgileri
+
+### ProxySQL Monitor Kullanıcısı
+- Kullanıcı adı: proxysql_monitor
+- Şifre: monitor_pass123
+- Yetkiler: REPLICATION CLIENT, SELECT ON mysql.*
+
+### Uygulama Kullanıcısı
+- Kullanıcı adı: app_user
+- Şifre: app_pass123
+- Yetkiler: ALL PRIVILEGES
+
+### Replikasyon Kullanıcısı
+- Kullanıcı adı: rep_user
+- Şifre: YourStrongPassword
+- Yetkiler: REPLICATION SLAVE
+
+## Servis Portları
+
+- MySQL Master: 3308
+- MySQL Slave: 3307
+- ProxySQL Admin: 6032
+- ProxySQL MySQL: 6033
+- phpMyAdmin: 8080
+
+## Sistemi Durdurma ve Temizleme
+
+```bash
+# Servisleri durdur
+docker compose down
+
+# Servisleri ve volumeleri temizle
+docker compose down -v
+```
+
+## Notlar
+
+- ProxySQL, SELECT sorgularını otomatik olarak slave'e yönlendirir
+- Diğer tüm sorgular (INSERT, UPDATE, DELETE) master'a yönlendirilir
+- Slave sunucusu, master'dan gelen değişiklikleri otomatik olarak replike eder
+- phpMyAdmin üzerinden yapılan işlemler ProxySQL üzerinden gerçekleştirilir
+
+## Redmine Veritabanının İçeri Aktarılması
+
+Redmine veritabanını oluşturmak için:
+
+```bash
+docker compose exec mysql-master mysql -uroot -proot_password -e "CREATE DATABASE redmine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+Dump dosyasından içeri aktarmak için:
+
+```bash
+docker compose exec -T mysql-master mysql -uroot -proot_password redmine < redmine_dump.sql
+```
+
+Her iki slave'de de verilerin geldiğini kontrol et
+```bash
+docker compose exec mysql-slave-1 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
+docker compose exec mysql-slave-2 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
+```

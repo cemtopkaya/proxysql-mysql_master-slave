@@ -51,7 +51,8 @@ mysql_variables=
 mysql_servers =
 (
   { address="mysql-master" , port=3306 , hostgroup=1, max_connections=100 },
-  { address="mysql-slave"  , port=3306 , hostgroup=2, max_connections=100 }
+  { address="mysql-slave-1"  , port=3306 , hostgroup=2, max_connections=100 },
+  { address="mysql-slave-2"  , port=3306 , hostgroup=2, max_connections=100 }
 )
 
 mysql_users =
