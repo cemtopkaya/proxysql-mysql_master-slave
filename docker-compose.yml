@@ -6,27 +6,27 @@
 # Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
 
 services:
-  # MySQL Master
-  setup:
-    image: mysql:5.7
-    entrypoint: run.sh
-    depends_on:
-      mysql1:
-        condition: service_healthy
-      mysql2:
-        condition: service_healthy
-      mysql3:
-        condition: service_healthy
+  # setup:
+  #   image: mysql:5.7
+  #   entrypoint: run.sh
+  #   depends_on:
+  #     master1:
+  #       condition: service_healthy
+  #     master2:
+  #       condition: service_healthy
+  #     master3:
+  #       condition: service_healthy
       
 
-  mysql1:
+  master1:
     image: mysql:5.7
-    container_name: mysql1
+    container_name: master1
     restart: always
-    command: --defaults-file=/etc/mysql/my.cnf
+    command: --defaults-file=/etc/mysql/my.cnf --server-id=1
     volumes:
-      - ./mysql1/my.cnf:/etc/mysql/my.cnf
-      - mysql1_data:/var/lib/mysql
+      - ./mysql.cnf:/etc/mysql/my.cnf
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - master1_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: test_db
@@ -37,23 +37,25 @@ services:
     networks:
       - mysql_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
     depends_on:
-      mysql2:
+      master2:
         condition: service_healthy
-      mysql3:
+      master3:
         condition: service_healthy
-  mysql2:
+  
+  master2:
     image: mysql:5.7
-    container_name: mysql2
+    container_name: master2
     restart: always
-    command: --defaults-file=/etc/mysql/my.cnf
+    command: --defaults-file=/etc/mysql/my.cnf --server-id=2
     volumes:
-      - ./mysql2/my.cnf:/etc/mysql/my.cnf
-      - mysql2_data:/var/lib/mysql
+      - ./mysql.cnf:/etc/mysql/my.cnf
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - master2_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: test_db
@@ -63,23 +65,21 @@ services:
       - "33062:3306"
     networks:
       - mysql_network
-
-    
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  mysql3:
+  master3:
     image: mysql:5.7
-    container_name: mysql3
+    container_name: master3
     restart: always
-    command: --defaults-file=/etc/mysql/my.cnf
+    command: --defaults-file=/etc/mysql/my.cnf --server-id=3
     volumes:
-      - ./mysql3/my.cnf:/etc/mysql/my.cnf
-      - mysql3_data:/var/lib/mysql
+      - ./mysql.cnf:/etc/mysql/my.cnf
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - master3_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: test_db
@@ -90,19 +90,19 @@ services:
     networks:
       - mysql_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-# networks:
-#   mysql_network:
-#     driver: bridge
+networks:
+  mysql_network:
+    driver: bridge
 
-# volumes:
-#   mysql1_data:
-#   mysql2_data:
-#   mysql3_data:
+volumes:
+   master1_data:
+   master2_data:
+   master3_data:
 
   # # MySQL Slave 1
   # mysql-slave-1:

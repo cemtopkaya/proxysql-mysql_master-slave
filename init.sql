@@ -20,9 +20,12 @@ GRANT ALL PRIVILEGES ON *.* TO 'app_user'@'%';
 FLUSH PRIVILEGES;
 
 -- Group Replication için replikasyon kullanıcısını ayarla
-CHANGE MASTER TO MASTER_USER='repl_user', MASTER_PASSWORD='repl_pass123' FOR CHANNEL 'group_replication_recovery';
+CHANGE MASTER TO 
+  MASTER_USER='repl_user', 
+  MASTER_PASSWORD='repl_pass123' 
+  FOR CHANNEL 'group_replication_recovery';
 
--- Pluginleri yukluyoruz
+-- Group Replication eklentisini yükle
 INSTALL PLUGIN group_replication SONAME 'group_replication.so';
 
 SET SQL_LOG_BIN=1;

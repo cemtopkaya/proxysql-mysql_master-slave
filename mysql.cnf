@@ -1,9 +1,109 @@
+[mysqld]
+# docker'a command olarak parametre şeklinde alacak
+server_id=1
+
+# GTID (Global Transaction ID) modunu aktif eder
 gtid_mode=ON
+
+# GTID tutarlılığını zorunlu kılar
 enforce_gtid_consistency=ON
+
+# Master bilgilerini tabloda saklar (dosya yerine)
 master_info_repository=TABLE
+
+# Relay log bilgilerini tabloda saklar (dosya yerine)
 relay_log_info_repository=TABLE
-binlog_checksum=NONE
-binlog_format=ROW
+
+# Multi-master için relay log ayarları
+relay_log=mysql-relay-bin
+relay_log_index=mysql-relay-bin.index
+log_slave_updates=ON
+
+
+# Transaction write setleri için hash algoritmasını belirler
 transaction_write_set_extraction=XXHASH64
 
-group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+# ========== Group Replication Ayarları ==========
+# ---------------------------------------------------------------------------
+# 5.7 sürümünde başlarına loose_ gelecek, sonrakilerde gidecek
+# group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+# yerine
+# loose_group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+# gelecek.
+# ---------------------------------------------------------------------------
+
+# Group Replication için benzersiz grup ID'si
+loose_group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+# Sunucu başlangıcında Group Replication'ı otomatik başlatmaz
+loose_group_replication_start_on_boot=OFF
+
+# İlk sunucunun grup bootstrap'ını yapmasını sağlar
+loose_group_replication_bootstrap_group=ON
+
+# Multi-master mod için single primary modu kapatır
+loose_group_replication_single_primary_mode=OFF
+
+# Tüm nodların write yapabilmesini sağlar
+loose_group_replication_enforce_update_everywhere_checks=TRUE
+
+# Bu sunucunun group replication için dinleyeceği adres
+loose_group_replication_local_address= "mysql1:24901"
+
+# Gruptaki diğer sunucuların adresleri
+loose_group_replication_group_seeds= "mysql1:24901,mysql2:24901,mysql3:24901"
+
+# Group replication için IP whitelist (tüm IP'lere izin verir)
+loose_group_replication_ip_whitelist="0.0.0.0/0"    
+
+# ========== Binlog Ayarları ==========
+# Binary log dosyasının adı
+# log_bin ayarı MySQL’de genellikle ON/OFF veya bir dosya yolu olarak kullanılabilir. 
+# Bu ayar etkinleştirildiğinde MySQL, veritabanında yapılan işlemleri 
+# ikili formatta kaydederek replikasyon ve nokta-atışı geri yükleme (point-in-time recovery) gibi işlemlere olanak sağlar.
+#
+# log_bin MySQL'de binary logging'i kontrol eden önemli bir parametredir.
+# Binary log, MySQL'de yapılan tüm değişiklikleri (INSERT, UPDATE, DELETE vb.) kronolojik sırayla kaydeden bir dosyadır
+# Replikasyon ve veri kurtarma işlemleri için kritik öneme sahiptir.
+log_bin=mysql_bin
+
+# The binlog_format parameter can have three possible values:
+# 
+# ROW (Selected in your configuration)
+#  - Logs the actual changes made to rows
+#  - Most reliable option
+#  - Higher storage requirements
+#  - Best for data consistency and replication
+#
+# STATEMENT
+#  - Logs SQL statements that modify data
+#  - Less storage space needed
+#  - Can cause replication issues with certain functions
+#  - Not safe for all scenarios
+# 
+# MIXED
+#  - Uses STATEMENT by default
+#  - Automatically switches to ROW format when needed
+#  - A compromise between storage space and reliability
+
+# Auto increment değerlerinin artış miktarı (node sayısı kadar)
+auto_increment_increment=3
+
+# Bu sunucu için auto increment başlangıç offseti
+auto_increment_offset=1
+
+# Binary log checksum'ı devre dışı bırakır
+binlog_checksum=NONE
+
+# Binary log format'ını ROW olarak ayarlar (Statement veya Mixed yerine)
+binlog_format=ROW
+
+
+# ====== Ağ Ayarları ==========
+# Tüm network interface'lerinden bağlantı kabul eder
+bind-address=0.0.0.0
+socket=/var/run/mysqld/mysqld.sock
+
+# ======  Diğer Ayarlar ==========
+# Read-only modu kapatır
+super_read_only=OFF
