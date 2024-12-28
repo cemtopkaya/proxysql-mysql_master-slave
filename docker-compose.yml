@@ -21,7 +21,7 @@ services:
     image: mysql:5.7
     container_name: master1
     hostname: master1
-    restart: unless-stopped
+    restart: always
     command: --defaults-file=/etc/mysql/my.cnf --server-id=1
     volumes:
       - ./config/master1.cnf:/etc/mysql/my.cnf:ro
@@ -44,7 +44,7 @@ services:
     image: mysql:5.7
     container_name: master2
     hostname: master2
-    restart: unless-stopped
+    restart: always
     command: --defaults-file=/etc/mysql/my.cnf --server-id=2
     volumes:
       - ./config/master2.cnf:/etc/mysql/my.cnf:ro
@@ -70,7 +70,7 @@ services:
     image: mysql:5.7
     container_name: master3
     hostname: master3
-    restart: unless-stopped
+    restart: always
     command: --defaults-file=/etc/mysql/my.cnf --server-id=3
     volumes:
       - ./config/master3.cnf:/etc/mysql/my.cnf:ro
