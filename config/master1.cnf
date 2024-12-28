@@ -1,0 +1,28 @@
+[mysqld]
+server_id=1
+pid-file=/var/run/mysqld/mysqld.pid
+socket=/var/run/mysqld/mysqld.sock
+bind-address="0.0.0.0"
+
+# Replication settings
+gtid_mode=ON
+enforce_gtid_consistency=ON
+binlog_checksum=NONE
+log_bin=binlog
+log_slave_updates=ON
+binlog_format=ROW
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+transaction_write_set_extraction=XXHASH64
+
+# Group Replication settings
+plugin_load="group_replication.so"
+group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+group_replication_start_on_boot=OFF
+group_replication_local_address="master1:33061"
+group_replication_group_seeds="master1:33061,master2:33062,master3:33063"
+group_replication_bootstrap_group=OFF
+group_replication_single_primary_mode=OFF
+group_replication_enforce_update_everywhere_checks=ON
+group_replication_recovery_retry_count=10
+group_replication_ip_whitelist="0.0.0.0/0"

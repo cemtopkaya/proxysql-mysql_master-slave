@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     command: --defaults-file=/etc/mysql/my.cnf --server-id=1
     volumes:
-      - ./master1.cnf:/etc/mysql/my.cnf:ro
+      - ./config/master1.cnf:/etc/mysql/my.cnf:ro
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - master1_data:/var/lib/mysql
       - /var/run/mysqld:/var/run/mysqld
@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
     command: --defaults-file=/etc/mysql/my.cnf --server-id=2
     volumes:
-      - ./master2.cnf:/etc/mysql/my.cnf:ro
+      - ./config/master2.cnf:/etc/mysql/my.cnf:ro
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - master2_data:/var/lib/mysql
       - /var/run/mysqld:/var/run/mysqld
@@ -73,7 +73,7 @@ services:
     restart: unless-stopped
     command: --defaults-file=/etc/mysql/my.cnf --server-id=3
     volumes:
-      - ./master3.cnf:/etc/mysql/my.cnf:ro
+      - ./config/master3.cnf:/etc/mysql/my.cnf:ro
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - master3_data:/var/lib/mysql
       - /var/run/mysqld:/var/run/mysqld
