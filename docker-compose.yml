@@ -33,9 +33,6 @@ services:
       - master1_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: test_db
-      MYSQL_USER: repl_user
-      MYSQL_PASSWORD: repl_password
     ports:
       - "33061:3306"
     networks:
@@ -62,9 +59,6 @@ services:
       - master2_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: test_db
-      MYSQL_USER: repl_user
-      MYSQL_PASSWORD: repl_password
     ports:
       - "33062:3306"
     networks:
@@ -86,9 +80,7 @@ services:
       - master3_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: test_db
-      MYSQL_USER: repl_user
-      MYSQL_PASSWORD: repl_password
+
     ports:
       - "33063:3306"
     networks:

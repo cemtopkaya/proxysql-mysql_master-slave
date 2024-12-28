@@ -48,10 +48,10 @@ loose_group_replication_single_primary_mode=OFF
 loose_group_replication_enforce_update_everywhere_checks=TRUE
 
 # Bu sunucunun group replication için dinleyeceği adres
-loose_group_replication_local_address= "mysql1:24901"
+loose_group_replication_local_address= "master1:24901"
 
 # Gruptaki diğer sunucuların adresleri
-loose_group_replication_group_seeds= "mysql1:24901,mysql2:24901,mysql3:24901"
+loose_group_replication_group_seeds= "master1:24901,master2:24901,master3:24901"
 
 # Group replication için IP whitelist (tüm IP'lere izin verir)
 loose_group_replication_ip_whitelist="0.0.0.0/0"    
