@@ -5,9 +5,6 @@ CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
 GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
 GRANT SUPER, RELOAD ON *.* TO 'repl_user'@'%';
 
-
-
-
 -- ProxySQL monitor kullanıcısı
 CREATE USER IF NOT EXISTS 'proxysql_monitor'@'%' IDENTIFIED BY 'monitor_pass123';
 GRANT SELECT ON *.* TO 'proxysql_monitor'@'%';
@@ -19,13 +16,13 @@ GRANT ALL PRIVILEGES ON *.* TO 'app_user'@'%';
 
 FLUSH PRIVILEGES;
 
+-- Group Replication eklentisini yükle
+INSTALL PLUGIN group_replication SONAME 'group_replication.so';
+
 -- Group Replication için replikasyon kullanıcısını ayarla
 CHANGE MASTER TO 
   MASTER_USER='repl_user', 
   MASTER_PASSWORD='repl_pass123' 
   FOR CHANNEL 'group_replication_recovery';
-
--- Group Replication eklentisini yükle
-INSTALL PLUGIN group_replication SONAME 'group_replication.so';
 
 SET SQL_LOG_BIN=1;

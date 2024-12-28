@@ -6,17 +6,21 @@
 # Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
 
 services:
-  # setup:
-  #   image: mysql:5.7
-  #   entrypoint: run.sh
-  #   depends_on:
-  #     master1:
-  #       condition: service_healthy
-  #     master2:
-  #       condition: service_healthy
-  #     master3:
-  #       condition: service_healthy
-      
+  setup:
+    image: mysql:5.7
+    working_dir: /
+    entrypoint: /run.sh
+    volumes:
+      - ./run.sh:/run.sh
+    depends_on:
+      master1:
+        condition: service_healthy
+      master2:
+        condition: service_healthy
+      master3:
+        condition: service_healthy
+    networks:
+      - mysql_network
 
   master1:
     image: mysql:5.7

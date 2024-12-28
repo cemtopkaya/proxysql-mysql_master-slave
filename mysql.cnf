@@ -36,10 +36,10 @@ transaction_write_set_extraction=XXHASH64
 loose_group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
 # Sunucu başlangıcında Group Replication'ı otomatik başlatmaz
-loose_group_replication_start_on_boot=OFF
+loose_group_replication_start_on_boot=ON
 
 # İlk sunucunun grup bootstrap'ını yapmasını sağlar
-loose_group_replication_bootstrap_group=ON
+loose_group_replication_bootstrap_group=OFF
 
 # Multi-master mod için single primary modu kapatır
 loose_group_replication_single_primary_mode=OFF
