@@ -1,64 +1,54 @@
 #!/bin/bash
-set -e  # Hata durumunda scripti durdur
+set -ex
 
-# Dizin kontrolü
-mkdir -p /var/run/mysqld
-chown mysql:mysql /var/run/mysqld
+echo "Waiting for MySQL servers to be ready..."
+sleep 30
 
-# Her komut için hata kontrolü
-check_mysql_command_result() {
-    if [ $? -ne 0 ]; then
-        echo "MySQL command failed"
-        exit 1
-    fi
-}
+# Initialize all nodes first
+for node in master1 master2 master3; do
+    echo "Initializing $node..."
+    mysql -h $node -uroot -proot_password -e "
+    STOP GROUP_REPLICATION;
+    RESET MASTER;
+    SET GLOBAL super_read_only=0;
+    SET GLOBAL read_only=0;
+    SET SQL_LOG_BIN=0;
+    RESET SLAVE ALL;
+    
+    CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
+    GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'repl_user'@'%';
+    GRANT SUPER ON *.* TO 'repl_user'@'%';
+    GRANT SELECT ON performance_schema.* TO 'repl_user'@'%';
+    FLUSH PRIVILEGES;
+    
+    SET SQL_LOG_BIN=1;
+    
+    CHANGE MASTER TO MASTER_USER='repl_user', MASTER_PASSWORD='repl_pass123' 
+    FOR CHANNEL 'group_replication_recovery';
+    "
+done
 
-# Group Replication kontrolü
-check_replication() {
-    MYSQL_PWD=root_password mysql -h master1 -u root -e "
-        SELECT COUNT(*) as members 
-        FROM performance_schema.replication_group_members
-        WHERE MEMBER_STATE = 'ONLINE';" | grep -q "3"
-    if [ $? -ne 0 ]; then
-        echo "Group Replication failed"
-        exit 1
-    fi
-}
+# Verify plugin exists before continuing
+echo "Verifying group replication plugin..."
+mysql -h master1 -uroot -proot_password -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'group_replication';"
 
-# echo "Installing group_replication plugin on member-1..."
-# CHANGE MASTER TO MASTER_USER='repl', MASTER_PASSWORD='repl' FOR CHANNEL 'group_replication_recovery';
-# "INSTALL PLUGIN group_replication SONAME 'group_replication.so';"
-# mysql -hmaster1 -uroot -proot_password -e "INSTALL PLUGIN group_replication SONAME 'group_replication.so';"
-
-# check group_replication plugin installed on master1
-MYSQL_PWD=root_password mysql -h master1 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
-check_mysql_command_result
-MYSQL_PWD=root_password mysql -h master2 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
-check_mysql_command_result
-MYSQL_PWD=root_password mysql -h master3 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
-check_mysql_command_result
-
-echo "Bootstrapping first member (mysql-member-1)..."
-MYSQL_PWD=root_password mysql -h master1 -u root -e "
+# Bootstrap master1
+echo "Bootstrapping master1..."
+mysql -h master1 -uroot -proot_password -e "
 SET GLOBAL group_replication_bootstrap_group=ON;
 START GROUP_REPLICATION;
 SET GLOBAL group_replication_bootstrap_group=OFF;"
-check_mysql_command_result
 
-sleep 10
+sleep 15
 
-for i in {2..3}; do
-    echo "Starting replication on mysql-member-$i..."
-    MYSQL_PWD=root_password mysql -h master$i -u root -e "START GROUP_REPLICATION;"
-    check_mysql_command_result
-    sleep 5
+# Start remaining nodes
+for node in master2 master3; do
+    echo "Starting replication on $node..."
+    mysql -h $node -uroot -proot_password -e "START GROUP_REPLICATION;"
+    sleep 15
 done
 
-echo "Checking group replication status..."
-MYSQL_PWD=root_password mysql -h master1 -u root -e "
+# Final check
+echo "Final cluster status:"
+mysql -h master1 -uroot -proot_password -e "
 SELECT * FROM performance_schema.replication_group_members;"
-
-check_mysql_command_result
-check_replication
-
-echo "Setup completed!"

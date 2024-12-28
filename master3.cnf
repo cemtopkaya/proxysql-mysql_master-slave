@@ -1,0 +1,35 @@
+[mysqld]
+socket=/var/run/mysqld/mysqld.sock
+pid-file=/var/run/mysqld/mysqld.pid
+plugin-load=group_replication=group_replication.so
+server_id=3
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_bin=mysql-bin
+log_slave_updates=ON
+binlog_format=ROW
+binlog_checksum=NONE
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+transaction_write_set_extraction=XXHASH64
+relay_log=master3-relay-bin
+relay_log_index=master3-relay-bin.index
+
+# Group Replication settings
+loose_group_replication_group_name="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+loose_group_replication_start_on_boot=OFF
+loose_group_replication_bootstrap_group=OFF
+loose_group_replication_single_primary_mode=OFF
+loose_group_replication_enforce_update_everywhere_checks=ON
+loose_group_replication_local_address="master3:33063"
+loose_group_replication_group_seeds="master1:33061,master2:33062,master3:33063"
+report_port=33063
+loose_group_replication_ip_whitelist="0.0.0.0/0"
+
+# Auto-increment settings
+auto_increment_increment=3
+auto_increment_offset=3
+
+# Network settings
+bind-address="0.0.0.0"
+report_host="master3"

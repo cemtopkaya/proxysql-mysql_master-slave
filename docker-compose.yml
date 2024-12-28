@@ -1,22 +1,17 @@
 # Önce mysql master servisini başlat
 # - monitor_user ve monitor_password ile monitor kullanıcısı oluşturuyoruz.
-# - proxysql
-
-# ve ardından mysql slave servislerini oluşturuyoruz.
-# Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
+# - proxysql için gerekli kullanıcıları oluşturuyoruz
+# Multi-master Group Replication için 3 master node kuruluyor
 
 services:
   setup:
     image: mysql:5.7
+    container_name: mysql_setup
     working_dir: /
     entrypoint: /run.sh
     volumes:
       - ./run.sh:/run.sh
     depends_on:
-      master1:
-        condition: service_healthy
-      master2:
-        condition: service_healthy
       master3:
         condition: service_healthy
     networks:
@@ -25,12 +20,14 @@ services:
   master1:
     image: mysql:5.7
     container_name: master1
-    restart: always
+    hostname: master1
+    restart: unless-stopped
     command: --defaults-file=/etc/mysql/my.cnf --server-id=1
     volumes:
-      - ./mysql.cnf:/etc/mysql/my.cnf
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./master1.cnf:/etc/mysql/my.cnf:ro
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - master1_data:/var/lib/mysql
+      - /var/run/mysqld:/var/run/mysqld
     environment:
       MYSQL_ROOT_PASSWORD: root_password
     ports:
@@ -38,25 +35,22 @@ services:
     networks:
       - mysql_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      master2:
-        condition: service_healthy
-      master3:
-        condition: service_healthy
-  
+
   master2:
     image: mysql:5.7
     container_name: master2
-    restart: always
+    hostname: master2
+    restart: unless-stopped
     command: --defaults-file=/etc/mysql/my.cnf --server-id=2
     volumes:
-      - ./mysql.cnf:/etc/mysql/my.cnf
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./master2.cnf:/etc/mysql/my.cnf:ro
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - master2_data:/var/lib/mysql
+      - /var/run/mysqld:/var/run/mysqld
     environment:
       MYSQL_ROOT_PASSWORD: root_password
     ports:
@@ -64,41 +58,48 @@ services:
     networks:
       - mysql_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      master1:
+        condition: service_healthy
 
   master3:
     image: mysql:5.7
     container_name: master3
-    restart: always
+    hostname: master3
+    restart: unless-stopped
     command: --defaults-file=/etc/mysql/my.cnf --server-id=3
     volumes:
-      - ./mysql.cnf:/etc/mysql/my.cnf
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./master3.cnf:/etc/mysql/my.cnf:ro
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - master3_data:/var/lib/mysql
+      - /var/run/mysqld:/var/run/mysqld
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-
     ports:
       - "33063:3306"
     networks:
       - mysql_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      master2:
+        condition: service_healthy
 
 networks:
   mysql_network:
     driver: bridge
 
 volumes:
-   master1_data:
-   master2_data:
-   master3_data:
+  master1_data:
+  master2_data:
+  master3_data:
 
   # # MySQL Slave 1
   # mysql-slave-1:
