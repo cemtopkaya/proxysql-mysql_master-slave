@@ -11,17 +11,14 @@ services:
     hostname: setup
     container_name: setup
     restart: always
-    entrypoint: /run.sh
+    entrypoint: "/run_master1.sh && /run_master2.sh && /run_master3.sh"
     volumes:
       # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
-      - ./run.sh:/run.sh
+      - ./run_master1.sh:/run_master1.sh
+      - ./run_master2.sh:/run_master2.sh
+      - ./run_master3.sh:/run_master3.sh
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      MYSQL_PWD: root_password
     depends_on:
       master3:
         condition: service_healthy

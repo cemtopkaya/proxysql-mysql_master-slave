@@ -1,16 +1,28 @@
 #!/bin/bash
 
+set -x  # Komutları göster
 set -e  # Hata durumunda scripti durdur
 
-cat << EOF > .env
-MYSQL_HOST=master1
-MYSQL_USER=root
-MYSQL_PASSWORD=root_password
+cat << EOF > /tmp/master1.cnf
+[client]
+host=master1
+user=root
+password=$MYSQL_ROOT_PASSWORD
 EOF
 
-source .env
+cat << EOF > /tmp/master2.cnf
+[client]
+host=master2
+user=root
+password=$MYSQL_ROOT_PASSWORD
+EOF
 
-sleep 10
+cat << EOF > /tmp/master3.cnf
+[client]
+host=master3
+user=root
+password=$MYSQL_ROOT_PASSWORD
+EOF
 
 # Her komut için hata kontrolü
 check_mysql_command_result() {
@@ -38,20 +50,18 @@ check_replication() {
 # mysql -hmaster1 -uroot -proot_password -e "INSTALL PLUGIN group_replication SONAME 'group_replication.so';"
 
 # check group_replication plugin installed on master1
-MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -h master1 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
+mysql --defaults-file=/tmp/master1.cnf -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
 check_mysql_command_result
-MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -h master2 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
-check_mysql_command_result
-MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -h master3 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
+mysql --defaults-file=/tmp/master3.cnf -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
 check_mysql_command_result
 
-echo "Starting replication on master3..."
-MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -h master3 -u root -e "START GROUP_REPLICATION;"
+echo "Starting replication on master2..."
+mysql --defaults-file=/tmp/master3.cnf -e "START GROUP_REPLICATION;"
 check_mysql_command_result
 sleep 5
 
 echo "Checking group replication status..."
-MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysql -h master1 -u root -e "SELECT * FROM performance_schema.replication_group_members;"
+mysql --defaults-file=/tmp/master1.cnf -e "SELECT * FROM performance_schema.replication_group_members;"
 check_mysql_command_result
 check_replication
 

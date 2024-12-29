@@ -50,11 +50,26 @@ check_replication() {
 # mysql -hmaster1 -uroot -proot_password -e "INSTALL PLUGIN group_replication SONAME 'group_replication.so';"
 
 # check group_replication plugin installed on master1
-mysql --defaults-file=/tmp/master1.cnf -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
+echo "Checking group_replication plugin on master1..."
+count=1
+status=1
+while [ $count -le 30 ]
+do
+    echo "Attempt $count: Checking master1 connection..."
+    if mysqladmin --defaults-file=/tmp/master1.cnf ping &>/dev/null; then
+        mysql --defaults-file=/tmp/master1.cnf -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';" && status=0
+    fi
+    echo "Status: $status"
+    ((count++))
+    [ $status -eq 0 ] && break
+    echo "Waiting 5 seconds before next attempt..."
+    sleep 5
+done
+
 check_mysql_command_result
-mysql --defaults-file=/tmp/master2.cnf -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
+mysql -h master2 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
 check_mysql_command_result
-mysql --defaults-file=/tmp/master3.cnf -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
+mysql -h master3 -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME='group_replication';"
 check_mysql_command_result
 
 echo "Bootstrapping first member (mysql-member-1)..."

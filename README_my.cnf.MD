@@ -800,3 +800,8 @@ super_read_only=OFF
 
 Read-only modu kapatır
 
+
+---
+2024-12-29T02:14:30.772555Z 39 [ERROR] Plugin group_replication reported: 'binlog_checksum should be NONE for Group Replication'
+
+To resolve the error binlog_checksum should be NONE for Group Replication, you need to set the binlog_checksum parameter to NONE in your MySQL configuration. 

@@ -1,6 +1,8 @@
 [mysqld]
 log_bin=mysql-bin
 binlog_format=ROW
+binlog_checksum=NONE
+log_slave_updates=ON
 
 gtid_mode=ON
 enforce_gtid_consistency=ON
