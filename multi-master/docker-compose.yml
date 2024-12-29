@@ -12,11 +12,12 @@ services:
     container_name: setup
     restart: always
     entrypoint: /run.sh
+    # entrypoint: tail -f /dev/null
     volumes:
       # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
       - ./run.sh:/run.sh
     environment:
-      MYSQL_PWD: root_password
+      MYSQL_ROOT_PASSWORD: root_password
     depends_on:
       master3:
         condition: service_healthy

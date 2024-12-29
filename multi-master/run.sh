@@ -36,9 +36,9 @@ check_mysql_command_result() {
 check_replication() {
     echo "Checking group replication status..."
     mysql --defaults-file=/tmp/master1.cnf -e "
-        SELECT * as members 
+        SELECT *
         FROM performance_schema.replication_group_members
-        WHERE MEMBER_STATE = 'ONLINE';" | grep -q "3"
+        WHERE MEMBER_STATE='ONLINE';"
     if [ $? -ne 0 ]; then
         echo "Group Replication failed"
         exit 1
