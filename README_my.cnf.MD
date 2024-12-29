@@ -211,6 +211,43 @@ srwxrwxrwx 1 mysql mysql 0 Dec 28 21:01 /var/run/mysqld/mysqld.sock
 
 ### Plugins
 
+#### early_plugin_load vs plugin_load 
+
+`early_plugin_load`
+- *MySQL sunucusu başlatılırken* en erken aşamada yüklenen pluginler için kullanılır
+- Özellikle *sunucu başlangıcında hemen gerekli olan pluginler* için önemlidir
+- Genellikle keystore gibi güvenlik pluginleri için kullanılır
+- InnoDB tablespace şifreleme gibi erken yüklenmesi gereken pluginler için gereklidir
+
+`plugin_load`
+- MySQL sunucusunun normal başlatma süreci sırasında yüklenen pluginler için kullanılır
+- Standart pluginler için kullanılır
+- Sunucu başlangıcında hemen gerekli olmayan pluginler için uygundur
+
+`early_plugin_load` kullanmanız gereken durumlar:
+- Şifreleme pluginleri
+- Keyring pluginleri
+- Sunucu başlangıcında kritik olan güvenlik pluginleri
+
+#### plugin_load vs plugin_load_add 
+
+MySQL konfigürasyon dosyalarında kullanılan iki farklı direktiftir:
+
+**plugin_load:**
+- Ana plugin yükleme direktifidir
+- Önceki tüm plugin yükleme ayarlarını sıfırlar
+- Sadece belirtilen pluginleri yükler
+
+**plugin_load_add:**
+- Ek plugin yükleme direktifidir
+- Mevcut plugin listesine ekler
+- Önceden yüklenmiş pluginleri korur
+
+`plugin_load_add` kullanımı özellikle birden fazla plugin yüklemesi gereken durumlarda tercih edilir çünkü:
+- Modüler bir yaklaşım sağlar
+- Mevcut pluginleri etkilemez
+- Konfigürasyon dosyasını daha okunabilir hale getirir
+
 ```conf
 plugin-load-add=group_replication.so
 ```
@@ -794,11 +831,24 @@ The binlog_format parameter can have three possible values:
 
 # Diğer Ayarlar
 
+Bu ayar, MySQL veritabanında "super read-only" modunu kapatır. "super read-only" modu etkinleştirildiğinde, yalnızca SUPER ayrıcalığına sahip kullanıcılar veritabanında yazma işlemleri yapabilir. Bu ayarı OFF yaparak, tüm kullanıcıların yazma işlemleri yapabilmesine izin verirsiniz.
+
 ```conf
 super_read_only=OFF
 ```
 
 Read-only modu kapatır
+`read_only`:
+• MySQL sunucusunda “read-only” modu etkinleştirir
+• Sadece `SUPER` yetkisine sahip kullanıcılar yazma (`INSERT`, `UPDATE`, `DELETE` vb.) yapabilir
+• Normal kullanıcılar ise sadece okuma yapabilir
+
+`super_read_only`:
+• `read_only` modunu genişleterek `SUPER` yetkili kullanıcıların da yazma yapmasını engeller
+• Tüm kullanıcıların veritabanını salt-okunur şekilde kullanmasını sağlar
+• “Gerçek” salt-okunur modu sağlamak istediğinizde faydalıdır
+
+Özetle, `read_only=ON` iken `SUPER` yetkisi olan hesap yine de yazma işlemleri yapabilir. `super_read_only=ON` ise `SUPER` yetkilileri de dahil herkesi yazma işlemlerinden kısıtlar.
 
 
 ---

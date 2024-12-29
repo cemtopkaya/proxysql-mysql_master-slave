@@ -1,5 +1,8 @@
 SET SQL_LOG_BIN=0;
 
+SET GLOBAL super_read_only=0;
+SET GLOBAL read_only=0;
+
 -- Group Replication için gerekli kullanıcı
 CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
 GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
