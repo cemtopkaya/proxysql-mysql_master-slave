@@ -1,0 +1,115 @@
+# Önce mysql master servisini başlat
+# - monitor_user ve monitor_password ile monitor kullanıcısı oluşturuyoruz.
+# - proxysql
+
+# ve ardından mysql slave servislerini oluşturuyoruz.
+# Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
+
+services:
+  setup:
+    image: mysql:5.7
+    hostname: setup
+    container_name: setup
+    restart: always
+    entrypoint: /run.sh
+    volumes:
+      # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
+      - ./run.sh:/run.sh
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      master3:
+        condition: service_healthy
+
+
+  master1:
+    image: mysql:5.7
+    hostname: master1
+    container_name: master1
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=1
+      --group_replication_bootstrap_group=ON
+      --group_replication_start_on_boot=OFF
+      --group_replication_local_address="master1:24901"
+      --group_replication_group_seeds="master1:24901,master2:24902,master3:24903"
+    volumes:
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf
+      - ./ag.cnf:/etc/mysql/conf.d/ag.cnf
+      - ./group_replication.cnf:/etc/mysql/conf.d/group_replication.cnf
+      # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
+      - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  master2:
+    image: mysql:5.7
+    container_name: master2
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=2
+      --group_replication_bootstrap_group=OFF
+      --group_replication_start_on_boot=ON
+      --group_replication_local_address="master2:24902"
+      --group_replication_group_seeds="master1:24901,master2:24902,master3:24903"
+    volumes:
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf
+      - ./ag.cnf:/etc/mysql/conf.d/ag.cnf
+      - ./group_replication.cnf:/etc/mysql/conf.d/group_replication.cnf
+      # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
+      - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      master1:
+        condition: service_healthy
+
+
+  master3:
+    image: mysql:5.7
+    container_name: master3
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=3
+      --group_replication_bootstrap_group=OFF
+      --group_replication_start_on_boot=ON
+      --group_replication_local_address="master3:24903"
+      --group_replication_group_seeds="master1:24901,master2:24902,master3:24903"
+    volumes:
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf
+      - ./ag.cnf:/etc/mysql/conf.d/ag.cnf
+      - ./group_replication.cnf:/etc/mysql/conf.d/group_replication.cnf
+      # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
+      - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      master2:
+        condition: service_healthy

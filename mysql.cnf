@@ -1,4 +1,11 @@
 [mysqld]
+# MySQL sunucusu konfigürasyon dosyasını yukarıdan aşağıya doğru okur.
+# MySQL konfigürasyonunda plugin-load-add direktifinin erken yüklenmesinin nedenleri:
+# - Plugin Bağımlılıkları: Group Replication plugin'i MySQL sunucusunun başlangıç aşamasında yüklenmeli. Eğer bu plugin zamanında yüklenmezse, ona bağımlı olan diğer replikasyon ayarları ve özellikler düzgün çalışmayabilir.
+# - Sunucu Başlangıç Sırası: Plugin'lerin sunucunun geri kalanı başlamadan önce yüklenmesi gerekir, bu yüzden plugin-load-add direktifi dosyanın başlarında yer almalıdır.
+# - Hata Önleme: Eğer plugin yüklemesi gecikirse ve bağımlı ayarlar daha önce okunursa, MySQL başlangıç hatalarına veya beklenmedik davranışlara neden olabilir.
+plugin-load-add=group_replication.so
+
 # docker'a command olarak parametre şeklinde alacak
 server_id=1
 
