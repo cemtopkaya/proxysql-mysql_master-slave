@@ -87,6 +87,14 @@ initialize_master() {
         CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
         GRANT REPLICATION CLIENT ON *.* TO 'monitor'@'%';
         GRANT SELECT ON *.* TO 'monitor'@'%';
+        GRANT SUPER ON *.* TO 'monitor'@'%';
+
+        # Redmine için veritabanı ve kullanıcı oluştur
+        CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+        GRANT SELECT ON *.* TO 'redmine'@'%';
+        GRANT SUPER ON *.* TO 'redmine'@'%';
 
         FLUSH PRIVILEGES;
 
@@ -136,6 +144,13 @@ initialize_other_master() {
         CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
         GRANT REPLICATION CLIENT ON *.* TO 'monitor'@'%';
         GRANT SELECT ON *.* TO 'monitor'@'%';
+        GRANT SUPER ON *.* TO 'monitor'@'%';
+
+        CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+        GRANT SELECT ON *.* TO 'redmine'@'%';
+        GRANT SUPER ON *.* TO 'redmine'@'%';
 
         FLUSH PRIVILEGES;
 
@@ -170,7 +185,13 @@ initialize_slave() {
 
         CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
         GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+        CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+        GRANT SELECT ON *.* TO 'redmine'@'%';
+        GRANT SUPER ON *.* TO 'redmine'@'%';
+        
         FLUSH PRIVILEGES;
+
 
         CHANGE MASTER TO 
             MASTER_HOST='master1',
@@ -193,3 +214,17 @@ mysql --defaults-file=/tmp/slave.cnf -e "SHOW SLAVE STATUS\G"
 check_mysql_command_result
 
 echo "Slave setup completed!"
+
+# Master1'e bağlanıp kullanıcıları oluşturalım
+mysql -h master1 -uroot -proot_password << EOF
+CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
+GRANT SUPER, REPLICATION CLIENT ON *.* TO 'monitor'@'%';
+
+CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+CREATE DATABASE IF NOT EXISTS redmine;
+GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+
+FLUSH PRIVILEGES;
+EOF
+sleep 30
+echo "Monitor and redmine users created!"

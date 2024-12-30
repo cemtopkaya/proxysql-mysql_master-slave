@@ -6,4 +6,3 @@ gtid-mode=ON
 enforce-gtid-consistency=ON
 master-info-repository=TABLE
 relay-log-info-repository=TABLE
-read_only=ON 

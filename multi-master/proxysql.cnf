@@ -17,7 +17,7 @@ mysql_variables=
     interfaces="0.0.0.0:6033"
     default_schema="information_schema"
     stacksize=1048576
-    server_version="5.7.44"
+    server_version="5.7.12"
     connect_timeout_server=3000
     monitor_username="monitor"
     monitor_password="monitor"
@@ -35,15 +35,15 @@ mysql_variables=
 
 mysql_servers =
 (
-    { address="master1" , port=3306 , hostgroup=10, max_connections=200, weight=1 },
-    { address="master2" , port=3306 , hostgroup=10, max_connections=200, weight=1 },
-    { address="master3" , port=3306 , hostgroup=20, max_connections=200, weight=1 },
-    { address="slave" , port=3306 , hostgroup=20, max_connections=200, weight=1 }
+    { address="master1" , port=3306 , hostgroup=10, max_connections=100 },
+    { address="master2" , port=3306 , hostgroup=10, max_connections=100 },
+    { address="master3" , port=3306 , hostgroup=10, max_connections=100 },
+    { address="slave" , port=3306 , hostgroup=20, max_connections=100 }
 )
 
 mysql_users =
 (
-    { username = "root" , password = "root_password" , default_hostgroup = 10 , active = 1 }
+    { username = "redmine", password = "redmine_password", default_hostgroup = 10, active = 1 }
 )
 
 mysql_query_rules =
@@ -51,7 +51,7 @@ mysql_query_rules =
     {
         rule_id=1
         active=1
-        match_pattern="^SELECT.*"
+        match_pattern="^SELECT"
         destination_hostgroup=20
         apply=1
     },
