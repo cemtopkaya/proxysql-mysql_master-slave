@@ -10,7 +10,7 @@ services:
     image: mysql:5.7
     hostname: setup
     container_name: setup
-    restart: always
+    restart: "no"
     entrypoint: /run.sh
     # entrypoint: tail -f /dev/null
     volumes:
@@ -115,3 +115,42 @@ services:
     depends_on:
       master2:
         condition: service_healthy
+
+
+  slave:
+    image: mysql:5.7
+    hostname: slave
+    container_name: slave
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=4
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./my.cnf:/etc/mysql/my.cnf
+      - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf
+      - slave_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      master3:
+        condition: service_healthy
+
+
+volumes:
+  master1_data:
+  master2_data:
+  master3_data:
+  slave_data:
+
+
+networks:
+  mysql_network:

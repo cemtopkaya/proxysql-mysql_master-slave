@@ -23,6 +23,13 @@ user=root
 password=$MYSQL_ROOT_PASSWORD
 EOF
 
+cat << EOF > /tmp/slave.cnf
+[client]
+host=slave
+user=root
+password=$MYSQL_ROOT_PASSWORD
+EOF
+
 
 # Her komut için hata kontrolü
 check_mysql_command_result() {
@@ -137,3 +144,40 @@ for i in 2 3; do
 done
 
 check_replication
+
+# --------- Slave setup ---------
+initialize_slave() {
+    local cnf_file=$1
+    echo "Initializing slave..."
+    mysql --defaults-file=$cnf_file -e "
+        STOP SLAVE;
+        RESET SLAVE;
+        SET GLOBAL super_read_only=0;
+        SET GLOBAL read_only=0;
+        SET SQL_LOG_BIN=0;
+
+        CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
+        GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+        FLUSH PRIVILEGES;
+
+        CHANGE MASTER TO 
+            MASTER_HOST='master1',
+            MASTER_USER='repl_user', 
+            MASTER_PASSWORD='repl_pass123',
+            MASTER_AUTO_POSITION=1;
+
+        START SLAVE;
+        SET SQL_LOG_BIN=1;"
+    check_mysql_command_result
+}
+
+# Ana replikasyon kurulumu tamamlandıktan sonra slave'i başlat
+check_replication
+initialize_slave /tmp/slave.cnf
+sleep 30
+
+# Slave durumunu kontrol et
+mysql --defaults-file=/tmp/slave.cnf -e "SHOW SLAVE STATUS\G"
+check_mysql_command_result
+
+echo "Slave setup completed!"
