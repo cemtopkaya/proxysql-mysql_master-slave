@@ -82,6 +82,12 @@ initialize_master() {
         GRANT REPLICATION CLIENT ON *.* TO 'repl_user'@'%';
         GRANT SELECT ON performance_schema.* TO 'repl_user'@'%';
         GRANT SUPER ON *.* TO 'repl_user'@'%';
+
+        # ProxySQL monitor user'ı ekle
+        CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
+        GRANT REPLICATION CLIENT ON *.* TO 'monitor'@'%';
+        GRANT SELECT ON *.* TO 'monitor'@'%';
+
         FLUSH PRIVILEGES;
 
         CHANGE MASTER TO 
@@ -125,6 +131,12 @@ initialize_other_master() {
         GRANT REPLICATION CLIENT ON *.* TO 'repl_user'@'%';
         GRANT SELECT ON performance_schema.* TO 'repl_user'@'%';
         GRANT SUPER ON *.* TO 'repl_user'@'%';
+
+        # ProxySQL monitor user'ı ekle
+        CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
+        GRANT REPLICATION CLIENT ON *.* TO 'monitor'@'%';
+        GRANT SELECT ON *.* TO 'monitor'@'%';
+
         FLUSH PRIVILEGES;
 
         CHANGE MASTER TO 
