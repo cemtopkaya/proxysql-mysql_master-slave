@@ -10,7 +10,6 @@ services:
     image: mysql:5.7
     hostname: setup
     container_name: setup
-    restart: always
     entrypoint: /run.sh
     # entrypoint: tail -f /dev/null
     volumes:
@@ -19,7 +18,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root_password
     depends_on:
-      master3:
+      slave1:
         condition: service_healthy
 
 
@@ -28,9 +27,6 @@ services:
     hostname: master1
     container_name: master1
     restart: always
-    # ports:
-      # - "3306:3306"
-      # - "24901:24901"
     command: >
       --defaults-file=/etc/mysql/my.cnf
       --server-id=1
@@ -95,6 +91,37 @@ services:
       --defaults-file=/etc/mysql/my.cnf
       --server-id=3
       --group_replication_local_address="master3:24903"
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf
+      - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf
+      - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf
+      # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
+      # - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      master2:
+        condition: service_healthy
+
+  slave1:
+    image: mysql:5.7
+    hostname: slave1
+    container_name: slave1
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=4
+      --group_replication_local_address="slave1:24904"
+      --read-only=1
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
