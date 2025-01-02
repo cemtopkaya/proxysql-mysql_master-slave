@@ -34,6 +34,9 @@ group_replication_start_on_boot          = OFF
 group_replication_single_primary_mode    = OFF
 group_replication_enforce_update_everywhere_checks = ON
 
+# Auto-increment çakışmalarını önlemek için
+group_replication_auto_increment_increment = 1
+
 group_replication_ip_whitelist           = "0.0.0.0/0"
 group_replication_group_seeds            = "master1:24901,master2:24902,master3:24903"
 

@@ -34,6 +34,9 @@ services:
       --defaults-file=/etc/mysql/my.cnf
       --server-id=1
       --group_replication_local_address="master1:24901"
+      --auto_increment_increment=1
+      --auto_increment_offset=1
+      --group_replication_auto_increment_increment=1
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -42,6 +45,7 @@ services:
       - ./my.cnf:/etc/mysql/my.cnf:ro
       - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
       - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf:ro
+      # - ./master1.cnf:/etc/mysql/conf.d/master.cnf
       # - ./log.cnf:/etc/mysql/conf.d/log.cnf
       # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
       # - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
@@ -66,6 +70,9 @@ services:
       --defaults-file=/etc/mysql/my.cnf
       --server-id=2
       --group_replication_local_address="master2:24902"
+      --auto_increment_increment=1
+      --auto_increment_offset=1
+      --group_replication_auto_increment_increment=1
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -74,6 +81,7 @@ services:
       - ./my.cnf:/etc/mysql/my.cnf:ro
       - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
       - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf:ro
+      # - ./master2.cnf:/etc/mysql/conf.d/master.cnf
       # - ./log.cnf:/etc/mysql/conf.d/log.cnf
       # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
       # - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
@@ -101,6 +109,7 @@ services:
       --defaults-file=/etc/mysql/my.cnf
       --server-id=3
       --group_replication_local_address="master3:24903"
+      --read_only=1
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
@@ -109,6 +118,7 @@ services:
       - ./my.cnf:/etc/mysql/my.cnf:ro
       - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
       - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf:ro
+      # - ./master3.cnf:/etc/mysql/conf.d/master.cnf
       # - ./log.cnf:/etc/mysql/conf.d/log.cnf
       # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
       # - ./1_create_users.sql:/docker-entrypoint-initdb.d/1_create_users.sql
@@ -191,21 +201,59 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REDMINE_DB_WAIT: 80  # Veritabanının hazır olmasını beklemek için
-      REDMINE_DB_POOL: 20  # Bağlantı havuzu boyutunu artır
-      REDMINE_DB_MYSQL: proxysql
-      REDMINE_DB_HOST: proxysql
-      REDMINE_DB_PORT: 6033
+      REDMINE_DB_WAIT: 80
+      REDMINE_DB_POOL: 20
+      REDMINE_DB_MYSQL: master1
+      REDMINE_DB_HOST: master1
+      REDMINE_DB_PORT: 3306
       REDMINE_DB_USERNAME: redmine
       REDMINE_DB_PASSWORD: redmine_password
       REDMINE_DB_DATABASE: redmine
       TZ: Europe/Istanbul
+      RAILS_ENV: production
+      REDMINE_NO_DB_MIGRATE: "false"
+      REDMINE_LANG: tr
+      SECRET_KEY_BASE: "some_long_random_string_at_least_32_chars"
+      REDMINE_SESSION_LIFETIME: "86400"  # 24 saat
+      REDMINE_SESSION_TIMEOUT: "0"       # Oturum zaman aşımını devre dışı bırak
+      REDMINE_AUTOLOGIN: "true"         # Otomatik giriş aktif
     volumes:
       - redmine_files:/usr/src/redmine/files
+      - redmine_db:/usr/src/redmine/db
+    command: >
+      bash -c "
+        rm -f /usr/src/redmine/tmp/pids/server.pid &&
+        echo 'production:
+          adapter: mysql2
+          database: redmine
+          host: master1
+          port: 3306
+          username: redmine
+          password: redmine_password
+          encoding: utf8mb4' > /usr/src/redmine/config/database.yml &&
+        bundle exec rake db:migrate:reset &&
+        bundle exec rake db:migrate &&
+        echo tr | bundle exec rake redmine:load_default_data &&
+        bundle exec rake generate_secret_token &&
+        echo 'production:
+          session_store: active_record_store
+          session_lifetime: 86400
+          session_timeout: 0
+          autologin: true' > config/configuration.yml &&
+        cp /usr/src/redmine/config/database.yml /usr/src/redmine/config/database.yml.bak &&
+        echo 'production:
+          adapter: mysql2
+          database: redmine
+          host: proxysql
+          port: 6033
+          username: redmine
+          password: redmine_password
+          encoding: utf8mb4' > /usr/src/redmine/config/database.yml &&
+        rails server -b 0.0.0.0"
     depends_on:
       setup:
         condition: service_completed_successfully
-      proxysql:
+      master1:
         condition: service_healthy
 
 volumes:
@@ -214,6 +262,7 @@ volumes:
   master3_data:
   slave_data:
   redmine_files:
+  redmine_db:
 
 networks:
   mysql_network:

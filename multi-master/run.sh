@@ -176,6 +176,8 @@ check_replication
 initialize_slave() {
     local cnf_file=$1
     echo "Initializing slave..."
+    
+    # Önce kullanıcıları oluştur (read_only kapalıyken)
     mysql --defaults-file=$cnf_file -e "
         STOP SLAVE;
         RESET SLAVE;
@@ -190,9 +192,11 @@ initialize_slave() {
         GRANT SELECT ON *.* TO 'redmine'@'%';
         GRANT SUPER ON *.* TO 'redmine'@'%';
         
-        FLUSH PRIVILEGES;
+        FLUSH PRIVILEGES;"
+    check_mysql_command_result
 
-
+    # Sonra replikasyonu başlat ve read_only moduna geç
+    mysql --defaults-file=$cnf_file -e "
         CHANGE MASTER TO 
             MASTER_HOST='master1',
             MASTER_USER='repl_user', 
@@ -200,7 +204,11 @@ initialize_slave() {
             MASTER_AUTO_POSITION=1;
 
         START SLAVE;
-        SET SQL_LOG_BIN=1;"
+        SET SQL_LOG_BIN=1;
+        
+        # En son read-only moduna geç
+        SET GLOBAL read_only=1;
+        SET GLOBAL super_read_only=1;"
     check_mysql_command_result
 }
 
