@@ -23,6 +23,13 @@ user=root
 password=$MYSQL_ROOT_PASSWORD
 EOF
 
+cat << EOF > /tmp/slave.cnf
+[client]
+host=slave
+user=root
+password=$MYSQL_ROOT_PASSWORD
+EOF
+
 
 # Her komut için hata kontrolü
 check_mysql_command_result() {
@@ -75,6 +82,20 @@ initialize_master() {
         GRANT REPLICATION CLIENT ON *.* TO 'repl_user'@'%';
         GRANT SELECT ON performance_schema.* TO 'repl_user'@'%';
         GRANT SUPER ON *.* TO 'repl_user'@'%';
+
+        # ProxySQL monitor user'ı ekle
+        CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
+        GRANT REPLICATION CLIENT ON *.* TO 'monitor'@'%';
+        GRANT SELECT ON *.* TO 'monitor'@'%';
+        GRANT SUPER ON *.* TO 'monitor'@'%';
+
+        # Redmine için veritabanı ve kullanıcı oluştur
+        CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+        GRANT SELECT ON *.* TO 'redmine'@'%';
+        GRANT SUPER ON *.* TO 'redmine'@'%';
+
         FLUSH PRIVILEGES;
 
         CHANGE MASTER TO 
@@ -105,9 +126,6 @@ echo "Master initialized!"
 
 initialize_other_master() {
     local cnf_file=$1
-    local repl_user="repl_user"
-    local repl_password="repl_pass123"
-
     echo "Initializing other master..."
     mysql --defaults-file=$cnf_file -e "
         STOP GROUP_REPLICATION;
@@ -116,16 +134,29 @@ initialize_other_master() {
         SET GLOBAL read_only=0;
         SET SQL_LOG_BIN=0;
 
-        CREATE USER IF NOT EXISTS '${repl_user}'@'%' IDENTIFIED BY '${repl_password}';
-        GRANT REPLICATION SLAVE ON *.* TO '${repl_user}'@'%';
-        GRANT REPLICATION CLIENT ON *.* TO '${repl_user}'@'%';
-        GRANT SELECT ON performance_schema.* TO '${repl_user}'@'%';
-        GRANT SUPER ON *.* TO '${repl_user}'@'%';
+        CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
+        GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+        GRANT REPLICATION CLIENT ON *.* TO 'repl_user'@'%';
+        GRANT SELECT ON performance_schema.* TO 'repl_user'@'%';
+        GRANT SUPER ON *.* TO 'repl_user'@'%';
+
+        # ProxySQL monitor user'ı ekle
+        CREATE USER IF NOT EXISTS 'monitor'@'%' IDENTIFIED BY 'monitor';
+        GRANT REPLICATION CLIENT ON *.* TO 'monitor'@'%';
+        GRANT SELECT ON *.* TO 'monitor'@'%';
+        GRANT SUPER ON *.* TO 'monitor'@'%';
+
+        CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+        GRANT SELECT ON *.* TO 'redmine'@'%';
+        GRANT SUPER ON *.* TO 'redmine'@'%';
+
         FLUSH PRIVILEGES;
 
         CHANGE MASTER TO 
-            MASTER_USER='${repl_user}', 
-            MASTER_PASSWORD='${repl_password}' 
+            MASTER_USER='repl_user', 
+            MASTER_PASSWORD='repl_pass123' 
             FOR CHANNEL 'group_replication_recovery';
 
         START GROUP_REPLICATION;
@@ -141,26 +172,42 @@ done
 
 check_replication
 
+# --------- Slave setup ---------
 initialize_slave() {
     local cnf_file=$1
-    local master_host=$2
-    local repl_user="repl_user"
-    local repl_password="repl_pass123"
-
-    echo "Initializing slave server..."
+    echo "Initializing slave..."
     mysql --defaults-file=$cnf_file -e "
         STOP SLAVE;
-        RESET SLAVE ALL;
+        RESET SLAVE;
+        SET GLOBAL super_read_only=0;
+        SET GLOBAL read_only=0;
+        SET SQL_LOG_BIN=0;
+
+        CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY 'repl_pass123';
+        GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';
+        CREATE USER IF NOT EXISTS 'redmine'@'%' IDENTIFIED BY 'redmine_password';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'%';
+        GRANT SELECT ON *.* TO 'redmine'@'%';
+        GRANT SUPER ON *.* TO 'redmine'@'%';
+        
+        FLUSH PRIVILEGES;
+
 
         CHANGE MASTER TO 
-            MASTER_HOST='${master_host}',
-            MASTER_USER='${repl_user}',
-            MASTER_PASSWORD='${repl_password}',
+            MASTER_HOST='master1',
+            MASTER_USER='repl_user', 
+            MASTER_PASSWORD='repl_pass123',
             MASTER_AUTO_POSITION=1;
 
-        START SLAVE;"
+        START SLAVE;
+        SET SQL_LOG_BIN=1;"
     check_mysql_command_result
 }
 
-initialize_slave /tmp/slave1.cnf master1
-exit 0
+# Ana replikasyon kurulumu tamamlandıktan sonra slave'i başlat
+initialize_slave /tmp/slave.cnf
+sleep 30
+
+# Slave durumunu kontrol et
+mysql --defaults-file=/tmp/slave.cnf -e "SHOW SLAVE STATUS\G"
+echo "Slave setup completed with `[[ $? -eq 0 ]] && echo success || echo failure`"
