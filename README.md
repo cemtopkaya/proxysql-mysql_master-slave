@@ -1,6 +1,65 @@
+# MySQL Yüksek Kullanılabilirlik ve Ölçeklenebilirlik Çözümleri
+
+MySQL'de üç ana replikasyon türü vardır: 
+1. master-slave, 
+1. multi-master 
+1. ve multi-master-multi-slave. 
+
+Bu türleri sağlamak için 
+- MySQL Replication, 
+- MySQL Group Replication (Galera'nın MySQL'e entegre edilmiş hali) 
+gibi araçlar kullanılır. 
+
+MySQL Group Replication, yüksek kullanılabilirlik ve veri tutarlılığı sağlayan **"çoklu efendi"** replikasyon için en güncel ve tercih edilen çözümdür.
+
+### MySQL Replikasyon Türleri
+
+* **Efendi-Köle (Master-Slave) Replikasyon:**
+    * Klasik bir replikasyon türüdür.
+    * Bir ana sunucu (master) tüm yazma işlemlerini gerçekleştirirken, bir veya daha fazla köle sunucu (slave) bu verileri eş zamanlı veya gecikmeli olarak kopyalar.
+    * **Amaç:** Yük dağılımı, yedekleme ve yüksek kullanılabilirlik.
+
+* **Çoklu Efendi (Multi-Master) Replikasyon:**
+    * Birden fazla sunucu hem okuma hem de yazma işlemlerini gerçekleştirebilir.
+    * Veri tutarlılığını sağlamak için karmaşık senaryoları yönetmek gerekir.
+    * **Amaç:** Yüksek yazma performansı ve coğrafi dağılım.
+
+* **Çoklu Efendi-Çoklu Köle (Multi-Master-Multi-Slave) Replikasyon:**
+    * Çoklu efendi ve çoklu kölenin bir arada olduğu karmaşık bir yapıdır.
+    * **Amaç:** Hem yüksek yazma performansı hem de yüksek okuma performansı.
+
+### MySQL Replikasyonunu Sağlayan Araçlar
+
+* **MySQL Replication:** MySQL'in yerleşik replikasyon özelliği. Genellikle master-slave replikasyon için kullanılır.
+
+* **MySQL Group Replication:** MySQL 5.7 ve üzeri sürümlerinde yer alan bir özelliktir. Çoklu efendi replikasyonunu ve yüksek veri tutarlılığını sağlar. Galera Cluster'ın MySQL'e entegre edilmiş halidir.
+
+* **Galera Cluster:** MySQL için yüksek kullanılabilirlik sağlayan bir küme çözümüydü. Şimdi MySQL Group Replication ile birleştirilmiştir.
+
+### Neden Galera MySQL Group Replication'a Alternatif Değil?
+
+* **Galera** ve **MySQL Group Replication** aslında aynı teknolojinin farklı evreleridir. Galera, MySQL Group Replication'ın temelini oluşturan açık kaynaklı bir proje olarak başlamıştır.
+* MySQL 5.7 ile birlikte Galera, MySQL'e entegre edilerek **MySQL Group Replication** olarak adlandırılmıştır. Bu sayede MySQL'in yerleşik bir özelliği haline gelmiş ve daha iyi desteklenmeye başlanmıştır.
+* **MySQL Group Replication**, Galera'ya göre daha fazla özellik ve geliştirme imkanı sunar.
+
+**Özetle:**
+
+* MySQL replikasyon türleri, veri dağılımı, yüksek kullanılabilirlik ve ölçeklenebilirlik gibi farklı ihtiyaçları karşılamak için tasarlanmıştır.
+* MySQL Group Replication, çoklu efendi replikasyon için en güncel ve güçlü çözümdür.
+* Galera, MySQL Group Replication'ın temelini oluşturan bir proje olup artık MySQL'e entegre olmuştur.
+
+**Ek Bilgiler:**
+
+* **MySQL 8.0** ile birlikte MySQL Group Replication'a birçok yeni özellik eklenmiştir.
+* Her bir replikasyon türünün kendine özgü avantajları ve dezavantajları vardır. Projenizin ihtiyaçlarına en uygun olanı seçmek önemlidir.
+* MySQL replikasyonunun doğru yapılandırılması ve yönetilmesi, sistemin performansı ve güvenilirliği için kritiktir.
+
+
+
 ### ProxySQL
 
 proxysql başlarken proxysql.cnf dosyasında yer alan bilgilere göre kullanıcı adı ve şifresiyle erişilebilir:
+
 ```conf
 admin_variables=
 {
@@ -10,6 +69,7 @@ admin_variables=
 ```
 
 Aynı ayar dosyasında `mysql_servers`, `mysql_users` ve `mysql_query_rules` tablolarını çekerek oluşturacaktır:
+
 ```conf
 # Write için Mysql MASTER > hostgroup = 1
 # Read için Mysql SLAVE > hostgroup = 2
@@ -169,10 +229,16 @@ MySQL [admin]>
 ```
 
 #### Admin Port (6032)
+
 -- Kullanılabilir tablolar
+
+```sql
 SHOW TABLES FROM main;
+```
 
 -- Önemli admin tabloları ve bilgileri:
+
+```sql
 SELECT * FROM mysql_servers;              -- Yapılandırılmış MySQL sunucuları
 SELECT * FROM mysql_users;                -- Yapılandırılmış kullanıcılar
 SELECT * FROM mysql_query_rules;          -- Query routing kuralları
@@ -182,33 +248,41 @@ SELECT * FROM stats.stats_mysql_connection_pool; -- Bağlantı havuzu durumu
 SELECT * FROM stats.stats_mysql_global;   -- Global istatistikler
 SELECT * FROM monitor.mysql_server_connect; -- Sunucu bağlantı logları
 SELECT * FROM monitor.mysql_server_ping;   -- Sunucu ping logları
+```
 
 -- Konfigürasyon değişiklikleri için:
+
+```sql
 LOAD MYSQL USERS TO RUNTIME;             -- Kullanıcı değişikliklerini uygula
 LOAD MYSQL SERVERS TO RUNTIME;           -- Sunucu değişikliklerini uygula
 LOAD MYSQL QUERY RULES TO RUNTIME;       -- Kural değişikliklerini uygula
 SAVE MYSQL USERS TO DISK;                -- Kullanıcıları kalıcı kaydet
 SAVE MYSQL SERVERS TO DISK;              -- Sunucuları kalıcı kaydet
 SAVE MYSQL QUERY RULES TO DISK;          -- Kuralları kalıcı kaydet
+```
 
 ## Replikasyon Testi
 
 1. **Servislerin Durumunu Kontrol Etme**:
+
 ```bash
 docker compose ps
 ```
 
 2. **Master Durumunu Kontrol Etme**:
+
 ```bash
 docker compose exec mysql-master mysql -uroot -proot_password -e "SHOW MASTER STATUS\G"
 ```
 
 3. **Slave Durumunu Kontrol Etme**:
+
 ```bash
 docker compose exec mysql-slave mysql -uroot -proot_password -e "SHOW SLAVE STATUS\G"
 ```
 
 4. **Test Veritabanı Oluşturma**:
+
 ```bash
 docker compose exec mysql-master mysql -uroot -proot_password -e "
 CREATE DATABASE test_db;
@@ -221,6 +295,7 @@ CREATE TABLE users (
 ```
 
 5. **Test Verisi Ekleme**:
+
 ```bash
 docker compose exec mysql-master mysql -uroot -proot_password -e "
 USE test_db;
@@ -229,6 +304,7 @@ INSERT INTO users (name) VALUES ('Jane Smith');"
 ```
 
 6. **Replikasyonu Kontrol Etme**:
+
 ```bash
 docker compose exec mysql-slave mysql -uroot -proot_password -e "
 USE test_db;
@@ -238,11 +314,13 @@ SELECT * FROM users;"
 ## ProxySQL Testi
 
 1. **ProxySQL Admin Arayüzüne Bağlanma**:
+
 ```bash
 docker compose exec proxysql mysql -h127.0.0.1 -P6032 -uadmin -padmin
 ```
 
 2. **Server Durumunu Kontrol Etme**:
+
 ```sql
 SELECT * FROM mysql_servers;
 SELECT * FROM mysql_users;
@@ -250,6 +328,7 @@ SELECT * FROM mysql_query_rules;
 ```
 
 3. **ProxySQL Üzerinden Yazma Testi**:
+
 ```bash
 docker compose exec mysql-master mysql -h proxysql -P6033 -uapp_user -papp_pass123 -e "
 USE test_db;
@@ -326,6 +405,7 @@ docker compose exec -T mysql-master mysql -uroot -proot_password redmine < redmi
 ```
 
 Her iki slave'de de verilerin geldiğini kontrol et
+
 ```bash
 docker compose exec mysql-slave-1 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
 docker compose exec mysql-slave-2 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"

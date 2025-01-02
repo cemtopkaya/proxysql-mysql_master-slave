@@ -4,15 +4,15 @@
 graph TD
   A[Redmine Sunucu] --> B[ProxySQL]
   B --> C{İşlem Türü}
-  C -->|Write| D[MySQL Group Replication (Master)]
-  C -->|Read| E[MySQL Group Replication (Slave)]
-  subgraph MySQL Group Replication (Master)
+  C -->|Write| D[MySQL Group Replication Master]
+  C -->|Read| E[MySQL Group Replication Slave]
+  subgraph MySQL Group Replication Master
     F[Master 1]
     G[Master 2]
     H[Master 3]
     I[Master 4]
   end
-  subgraph MySQL Group Replication (Slave)
+  subgraph MySQL Group Replication Slave
     J[Slave 1]
     K[Slave 2]
   end
@@ -53,25 +53,19 @@ graph TD
 
 # Nginx Yük Dengeleyici ve CQRS Deseni
 
+CQRS mimarisinde bir yazılımın kümeli veritabanı yapısıyla çalışması:
+
 ```mermaid
-graph TD
-  A[Nginx Yük Dengeleyici] --> B[Web Sunucu (Command)]
-  A --> C[Web Sunucu (Query)]
-  B --> D[ProxySQL]
-  C --> D
-  D --> E[MySQL Group Replication]
-  subgraph MySQL Group Replication
-    F[Master 1]
-    G[Master 2]
-    H[Master 3]
-    I[Master 4]
-    J[Slave 1]
-    K[Slave 2]
-  end
-  E --> F
-  E --> G
-  E --> H
-  E --> I
-  E --> J
-  E --> K
+flowchart LR
+    A[Client] --> B[Nginx / API Gateway]
+    B --> C[Command Service]
+    B --> D[Query Service]
+
+    subgraph Database Tier
+        E[(MySQL Master)]
+        F[(MySQL Slave)]
+    end
+
+    C -->|Write| E
+    D -->|Read| F
 ```
