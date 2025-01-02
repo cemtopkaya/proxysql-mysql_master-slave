@@ -1,0 +1,79 @@
+# mysql-master: hostgroup 1 (write)
+# mysql-slave: hostgroup 2 (read)
+#
+# Query Routing Kuralları:
+#   mysql_query_rules=
+#   (
+#     # SELECT sorguları slave'e yönlendirilir (hostgroup 2)
+#     { rule_id=1, active=1, match_pattern="^SELECT", destination_hostgroup=2 }
+#     # Diğer tüm sorgular master'a yönlendirilir (hostgroup 1)
+#     { rule_id=2, active=1, match_pattern=".*", destination_hostgroup=1 }
+#   )
+#
+# Kullanıcı Yapılandırması:
+#   mysql_users=
+#   (
+#     { username="root", password="root_password", default_hostgroup=1, active=1 }
+#   )
+
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+  admin_credentials="admin:admin"
+  mysql_ifaces="0.0.0.0:6032"
+}
+
+mysql_variables=
+{
+  threads=4
+  max_connections=2048
+  default_query_delay=0
+  default_query_timeout=36000000
+  have_compress=true
+  poll_timeout=2000
+  interfaces="0.0.0.0:6033"
+  default_schema="information_schema"
+  stacksize=1048576
+  server_version="5.7"
+  connect_timeout_server=3000
+  monitor_history=600000
+  monitor_connect_interval=60000
+  monitor_ping_interval=10000
+  monitor_read_only_interval=1500
+  monitor_read_only_timeout=500
+  monitor_username="proxysql_monitor"
+  monitor_password="monitor_pass123"
+}
+
+# Write için Mysql MASTER > hostgroup = 1
+# Read için Mysql SLAVE > hostgroup = 2
+mysql_servers =
+(
+  { address="mysql-master" , port=3306 , hostgroup=1, max_connections=100 },
+  { address="mysql-slave-1"  , port=3306 , hostgroup=2, max_connections=100 },
+  { address="mysql-slave-2"  , port=3306 , hostgroup=2, max_connections=100 }
+)
+
+mysql_users =
+(
+  { username = "app_user" , password = "app_pass123" , default_hostgroup = 1 , active = 1 }
+)
+
+mysql_query_rules =
+(
+  {
+    rule_id=1
+    active=1
+    match_pattern="^SELECT"
+    destination_hostgroup=2
+    apply=1
+  },
+  {
+    rule_id=2
+    active=1
+    match_pattern=".*"
+    destination_hostgroup=1
+    apply=1
+  }
+)

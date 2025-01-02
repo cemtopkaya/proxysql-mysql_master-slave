@@ -1,0 +1,114 @@
+# Önce mysql master servisini başlat
+# - monitor_user ve monitor_password ile monitor kullanıcısı oluşturuyoruz.
+# - proxysql
+
+# ve ardından mysql slave servislerini oluşturuyoruz.
+# Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
+
+services:
+  # MySQL Master
+  mysql-master:
+    image: mysql:5.7
+    container_name: master
+    hostname: master
+    command: >
+      --server-id=1
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: mydatabase
+      TZ: Europe/Istanbul
+    volumes:
+      - master_data:/var/lib/mysql
+      - ./master-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3308:3306"
+    networks:
+      - mysql-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MySQL Slave 1
+  mysql-slave-1:
+    image: mysql:5.7
+    container_name: slave-1
+    hostname: slave-1
+    command: >
+      --server-id=2
+      --relay-log=mysql-relay-bin
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: Europe/Istanbul
+    volumes:
+      - slave_data_1:/var/lib/mysql
+      - ./slave-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3307:3306"
+    networks:
+      - mysql-network
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+
+  # MySQL Slave 2
+  mysql-slave-2:
+    image: mysql:5.7
+    container_name: slave-2
+    hostname: slave-2
+    command: >
+      --server-id=3
+      --relay-log=mysql-relay-bin
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: Europe/Istanbul
+    volumes:
+      - slave_data_2:/var/lib/mysql
+      - ./slave-init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3309:3306"
+    networks:
+      - mysql-network
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+
+  # ProxySQL
+  proxysql:
+    image: proxysql/proxysql
+    container_name: proxysql
+    hostname: proxysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      TZ: Europe/Istanbul
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "6032:6032" # Admin arayüzü için
+      - "6033:6033" # MySQL bağlantı portu
+    networks:
+      - mysql-network
+    depends_on:
+      - mysql-master
+      - mysql-slave-1
+      - mysql-slave-2
+
+
+networks:
+  mysql-network:
+
+volumes:
+  master_data:
+  slave_data_1:
+  slave_data_2:

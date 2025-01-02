@@ -1,0 +1,189 @@
+# Önce mysql master servisini başlat
+# - monitor_user ve monitor_password ile monitor kullanıcısı oluşturuyoruz.
+# - proxysql
+
+# ve ardından mysql slave servislerini oluşturuyoruz.
+# Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
+
+services:
+  setup:
+    image: mysql:5.7
+    hostname: setup
+    container_name: setup
+    restart: "no"
+    entrypoint: /run.sh
+    volumes:
+      # Başlangıçta çalıştırılacak sql ve kabuk dosyalarını yükleyelim
+      - ./run.sh:/run.sh
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+    depends_on:
+      slave:
+        condition: service_healthy
+
+  master1:
+    image: mysql:5.7
+    hostname: master1
+    container_name: master1
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=1
+      --group_replication_local_address="master1:24901"
+      --auto_increment_increment=1
+      --auto_increment_offset=1
+      --group_replication_auto_increment_increment=1
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - master1_data:/var/lib/mysql
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf:ro
+      - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
+      - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: repl_user
+      MYSQL_PASSWORD: repl_pass123
+      TZ: Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  master2:
+    image: mysql:5.7
+    hostname: master2
+    container_name: master2
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=2
+      --group_replication_local_address="master2:24902"
+      --auto_increment_increment=1
+      --auto_increment_offset=1
+      --group_replication_auto_increment_increment=1
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - master2_data:/var/lib/mysql
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf:ro
+      - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
+      - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: repl_user
+      MYSQL_PASSWORD: repl_pass123
+      TZ: Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      master1:
+        condition: service_healthy
+
+  master3:
+    image: mysql:5.7
+    hostname: master3
+    container_name: master3
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=3
+      --group_replication_local_address="master3:24903"
+      --read_only=1
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - master3_data:/var/lib/mysql
+      # Config dosyalarını yükleyelim
+      - ./my.cnf:/etc/mysql/my.cnf:ro
+      - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
+      - ./2_group_replication.cnf:/etc/mysql/conf.d/2_group_replication.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: repl_user
+      MYSQL_PASSWORD: repl_pass123
+      TZ: Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      master2:
+        condition: service_healthy
+
+  slave:
+    image: mysql:5.7
+    hostname: slave
+    container_name: slave
+    restart: always
+    command: >
+      --defaults-file=/etc/mysql/my.cnf
+      --server-id=4
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./my.cnf:/etc/mysql/my.cnf:ro
+      - ./1_network.cnf:/etc/mysql/conf.d/1_network.cnf:ro
+      - ./slave.cnf:/etc/mysql/conf.d/slave.cnf:ro
+      - slave_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: repl_user
+      MYSQL_PASSWORD: repl_pass123
+      TZ: Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      master3:
+        condition: service_healthy
+
+  proxysql:
+    image: proxysql/proxysql:2.5.5
+    container_name: proxysql
+    hostname: proxysql
+    ports:
+      - "6032:6032"  # Admin port
+      - "6033:6033"  # MySQL port
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf:ro
+      - ./proxysql_init.sql:/etc/proxysql_init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysql", "-h", "127.0.0.1", "-P", "6032", "-u", "admin", "-padmin", "-e", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      master1:
+        condition: service_healthy
+      master2:
+        condition: service_healthy
+      master3:
+        condition: service_healthy
+      slave:
+        condition: service_healthy
+
+volumes:
+  master1_data:
+  master2_data:
+  master3_data:
+  slave_data:
+
+networks:
+  mysql_network:
+    name: mysql_network
+    driver: bridge

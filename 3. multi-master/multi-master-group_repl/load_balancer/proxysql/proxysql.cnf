@@ -1,0 +1,148 @@
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+    admin_credentials="admin:admin;radmin:radmin"
+    mysql_ifaces="0.0.0.0:6032"
+}
+
+mysql_variables=
+{
+    threads=4
+    max_connections=2048
+    default_query_delay=0
+    default_query_timeout=36000000
+    have_compress=true
+    poll_timeout=2000
+    interfaces="0.0.0.0:6033"
+    default_schema="information_schema"
+    stacksize=1048576
+    server_version="8.0.32"
+    connect_timeout_server=3000
+    monitor_username="monitor"
+    monitor_password="monitor"
+    monitor_history=600000
+    monitor_connect_interval=60000
+    monitor_ping_interval=10000
+    monitor_read_only_interval=1500
+    monitor_read_only_timeout=500
+    ping_interval_server_msec=120000
+    ping_timeout_server=500
+    commands_stats=true
+    sessions_sort=true
+    connect_retries_on_failure=3
+    default_max_latency_ms=1000
+    default_reconnect=true
+    default_session_track_gtids=2
+    monitor_enabled=1
+    shun_on_failures=3
+    shun_recovery_time_sec=10
+    connection_max_age_ms=0
+    connection_delay_multiplex_ms=0
+    free_connections_pct=10
+}
+
+mysql_servers =
+(
+    {
+        address="master1"
+        port=3306
+        hostgroup=10
+        status="ONLINE"
+        weight=1
+        max_connections=100
+        comment="write-1"
+    },
+    {
+        address="master2"
+        port=3306
+        hostgroup=11
+        status="ONLINE"
+        weight=1
+        max_connections=100
+        comment="write-2"
+    },
+    {
+        address="master3"
+        port=3306
+        hostgroup=20
+        status="ONLINE"
+        weight=1
+        max_connections=100
+        comment="read-1"
+    },
+    {
+        address="slave"
+        port=3306
+        hostgroup=20
+        status="ONLINE"
+        weight=1
+        max_connections=100
+        comment="read-2"
+    }
+)
+
+mysql_users =
+(
+    {
+        username="app_user"
+        password="app_pass123"
+        default_hostgroup=10
+        active=1
+        max_connections=1000
+        transaction_persistent=1
+    },
+    {
+        username="monitor"
+        password="monitor"
+        default_hostgroup=10
+        active=1
+        max_connections=100
+    }
+)
+
+mysql_query_rules =
+(
+    {
+        rule_id=1
+        active=1
+        match_digest="^INSERT.*issues"
+        destination_hostgroup=10
+        apply=1
+    },
+    {
+        rule_id=2
+        active=1
+        match_digest="^INSERT.*issues"
+        destination_hostgroup=11
+        apply=1
+    },
+    {
+        rule_id=3
+        active=1
+        match_pattern="^SELECT"
+        destination_hostgroup=20
+        apply=1
+    },
+    {
+        rule_id=4
+        active=1
+        match_pattern="^SELECT.*FOR UPDATE"
+        destination_hostgroup=10
+        apply=1
+    }
+)
+
+mysql_replication_hostgroups =
+(
+    {
+        writer_hostgroup=10
+        reader_hostgroup=20
+        comment="host groups 1"
+    },
+    {
+        writer_hostgroup=11
+        reader_hostgroup=20
+        comment="host groups 2"
+    }
+) 
