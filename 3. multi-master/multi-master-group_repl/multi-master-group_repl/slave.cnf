@@ -1,0 +1,8 @@
+[mysqld]
+log-bin=mysql-bin
+relay-log=slave-relay-bin
+log-slave-updates=1
+gtid-mode=ON
+enforce-gtid-consistency=ON
+master-info-repository=TABLE
+relay-log-info-repository=TABLE

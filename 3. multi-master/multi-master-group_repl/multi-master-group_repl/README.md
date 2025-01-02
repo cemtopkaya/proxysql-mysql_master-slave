@@ -44,31 +44,3 @@ docker compose exec master2 mysql -uroot -proot_password -e "
 USE test_db;
 SELECT * FROM users;"
 ```
-
-## ProxySQL Testi
-
-1. **ProxySQL Admin Arayüzüne Bağlanma**:
-```bash
-docker compose exec proxysql mysql -h127.0.0.1 -P6032 -uadmin -padmin
-```
-
-2. **Server Durumunu Kontrol Etme**:
-```sql
-SELECT * FROM mysql_servers;
-SELECT * FROM mysql_users;
-SELECT * FROM mysql_query_rules;
-```
-
-3. **ProxySQL Üzerinden Yazma Testi**:
-```bash
-docker compose exec master1 mysql -h proxysql -P6033 -uapp_user -papp_pass123 -e "
-USE test_db;
-INSERT INTO users (name) VALUES ('Robert Brown');"
-```
-
-4. **ProxySQL Üzerinden Okuma Testi**:
-```bash
-docker compose exec master1 mysql -h proxysql -P6033 -uapp_user -papp_pass123 -e "
-USE test_db;
-SELECT * FROM users;"
-```
