@@ -1,0 +1,20 @@
+[mysqld]
+#----------------------------------------
+# Binary Log & GTID Settings
+#----------------------------------------
+log_bin                    = mysql-bin
+binlog_format              = ROW
+binlog_checksum            = NONE
+log_slave_updates          = 1
+
+# GTID Ayarları
+gtid_mode                  = ON
+enforce_gtid_consistency   = ON
+
+# Replikasyon Meta Verilerini Tablo Olarak Tut
+master_info_repository      = TABLE
+relay_log_info_repository   = TABLE
+
+# (Opsiyonel) Relay log dosyası isimlendirmesi
+relay-log                  = slave-relay-bin
+replicate-ignore-db = mysql

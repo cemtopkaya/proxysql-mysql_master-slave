@@ -56,7 +56,7 @@ mysql_servers =
     {
         address="master2"
         port=3306
-        hostgroup=11
+        hostgroup=10
         status="ONLINE"
         weight=1
         max_connections=100
@@ -70,15 +70,6 @@ mysql_servers =
         weight=1
         max_connections=100
         comment="read-1"
-    },
-    {
-        address="slave"
-        port=3306
-        hostgroup=20
-        status="ONLINE"
-        weight=1
-        max_connections=100
-        comment="read-2"
     }
 )
 
