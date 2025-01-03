@@ -1,0 +1,41 @@
+[mysqld]
+# ----------------------------------------
+# Binary Log Settings
+# ----------------------------------------
+log_bin               = mysql-bin
+binlog_format         = ROW
+binlog_checksum       = NONE
+log_slave_updates     = ON
+
+# ----------------------------------------
+# GTID Configuration
+# ----------------------------------------
+gtid_mode                 = ON
+enforce_gtid_consistency  = ON
+
+# ----------------------------------------
+# Replication Repository
+# ----------------------------------------
+master_info_repository = TABLE
+relay_log_info_repository  = TABLE
+
+# ----------------------------------------
+# Transaction Settings
+# ----------------------------------------
+transaction_write_set_extraction = XXHASH64
+
+# ----------------------------------------
+# Plugin Load
+# ----------------------------------------
+plugin-load=group_replication.so
+
+# ----------------------------------------
+# Group Replication Settings
+# ----------------------------------------
+group_replication_group_name          = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+group_replication_bootstrap_group     = OFF
+group_replication_start_on_boot       = OFF
+group_replication_single_primary_mode = ON
+group_replication_enforce_update_everywhere_checks = OFF
+
+# Bu örnekte multi-primary moddayız (OFF). Single-primary isterseniz ON yapın.
