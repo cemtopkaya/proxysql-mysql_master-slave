@@ -24,6 +24,12 @@ services:
     depends_on:
       master:
         condition: service_healthy
+      slave1:
+        condition: service_healthy
+      slave2:
+        condition: service_healthy
+      slave3:
+        condition: service_healthy
 
   setup:
     image: mysql:5.7
@@ -36,16 +42,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root_password
     depends_on:
-      master:
-        condition: service_healthy
       proxysql:
         condition: service_started
-      slave1:
-        condition: service_healthy
-      slave2:
-        condition: service_healthy
-      slave3:
-        condition: service_healthy
 
   master:
     image: mysql:5.7
@@ -163,57 +161,63 @@ services:
       slave2:
         condition: service_healthy
 
-  redmine:
-    image: redmine:5.0.2
-    restart: unless-stopped
-    container_name: redmine
+  redmine1:
+    image: redmine:latest
+    container_name: redmine1
     hostname: redmine
-    ports:
-      - "3000:3000"
     environment:
-      REDMINE_DB_WAIT: 80
-      REDMINE_DB_POOL: 20
       REDMINE_DB_HOST: proxysql
       REDMINE_DB_PORT: 6033
       REDMINE_DB_USERNAME: redmine
       REDMINE_DB_PASSWORD: redmine_password
       REDMINE_DB_DATABASE: redmine
       TZ: Europe/Istanbul
-      RAILS_ENV: production
-      REDMINE_NO_DB_MIGRATE: "false"
       REDMINE_LANG: tr
-      SECRET_KEY_BASE: "some_long_random_string_at_least_32_chars"
-      REDMINE_SESSION_LIFETIME: "86400"
-      REDMINE_SESSION_TIMEOUT: "0"
-      REDMINE_AUTOLOGIN: "true"
     volumes:
-      - redmine_files:/usr/src/redmine/files
-      - redmine_db:/usr/src/redmine/db
-    command: >
-      bash -c "
-        rm -f /usr/src/redmine/tmp/pids/server.pid &&
-        echo 'production:
-          adapter: mysql2
-          database: redmine
-          host: proxysql
-          port: 6033
-          username: redmine
-          password: redmine_password
-          encoding: utf8mb4' > /usr/src/redmine/config/database.yml &&
-        bundle exec rake db:migrate &&
-        echo tr | bundle exec rake redmine:load_default_data &&
-        bundle exec rake generate_secret_token &&
-        echo 'production:
-          session_store: active_record_store
-          session_lifetime: 86400
-          session_timeout: 0
-          autologin: true' > config/configuration.yml &&
-        rails server -b 0.0.0.0"
+      - ./volume/redmine/redmine-plugins:/usr/src/redmine/plugins
+      - ./volume/redmine/repos:/home/redmine/repos ###
+      - ./volume/redmine/redmine-themes:/usr/src/redmine/public/themes
+      - ./volume/redmine/redmine-data:/usr/src/redmine/files
+      # /var/log/redmine
+      - ./volume/redmine/redmine-logs/redmine:/var/log/redmine
     depends_on:
-      proxysql:
-        condition: service_started
       setup:
         condition: service_completed_successfully
+        
+  redmine2:
+    image: redmine:latest
+    container_name: redmine2
+    hostname: redmine
+    environment:
+      REDMINE_DB_HOST: proxysql
+      REDMINE_DB_PORT: 6033
+      REDMINE_DB_USERNAME: redmine
+      REDMINE_DB_PASSWORD: redmine_password
+      REDMINE_DB_DATABASE: redmine
+      TZ: Europe/Istanbul
+      REDMINE_LANG: tr
+    volumes:
+      - ./volume/redmine/redmine-plugins:/usr/src/redmine/plugins
+      - ./volume/redmine/repos:/home/redmine/repos ###
+      - ./volume/redmine/redmine-themes:/usr/src/redmine/public/themes
+      - ./volume/redmine/redmine-data:/usr/src/redmine/files
+      # /var/log/redmine
+      - ./volume/redmine/redmine-logs/redmine:/var/log/redmine
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-lb
+    hostname: nginx
+    depends_on:
+      - redmine1
+      - redmine2
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
   master_data:

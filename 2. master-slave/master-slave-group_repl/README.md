@@ -17,7 +17,7 @@ docker compose exec node1 mysql -uroot -proot_password -e "SELECT * FROM perform
 
 4. **Test Veritabanı Oluşturma**:
 ```bash
-docker compose exec master1 mysql -uroot -proot_password -e "
+docker compose exec node2 mysql -uroot -proot_password -e "
 CREATE DATABASE test_db;
 USE test_db;
 CREATE TABLE users (
