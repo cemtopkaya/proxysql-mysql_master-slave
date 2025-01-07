@@ -410,3 +410,9 @@ Her iki slave'de de verilerin geldiğini kontrol et
 docker compose exec mysql-slave-1 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
 docker compose exec mysql-slave-2 mysql -uroot -proot_password -e "USE redmine; SHOW TABLES;"
 ```
+
+# Sticky session 
+
+Sticky session, aynı kullanıcının oturum süresi boyunca tüm isteklerinin belirli bir arka uç sunucusuna yönlendirilmesini sağlayan bir tekniktir. Bu, oturum verilerinin tutarlılığını korur ve CSRF gibi güvenlik hatalarının önüne geçer. Nginx'de `ip_hash` kullanarak, aynı IP adresinden gelen isteklerin her zaman aynı sunucuya yönlendirilmesi sağlanır.
+
+Nginx yapılandırmasına `ip_hash` ekleyerek, istemcinin aynı IP adresinden gelen tüm isteklerinin aynı arka uç sunucusuna yönlendirilmesini sağlıyoruz. Redmine'deki oturumların çerezlerde saklanması nedeniyle, her isteğin aynı sunucuya gitmesi oturum tutarlılığı açısından önemlidir. Farklı sunucular arasında oturum bilgileri paylaşılmadığında, bu durum CSRF doğrulama hatalarına yol açabilir. `ip_hash` kullanımı, bu tür oturum yönetimi sorunlarının önüne geçerek CSRF hatalarını engellemektedir.
