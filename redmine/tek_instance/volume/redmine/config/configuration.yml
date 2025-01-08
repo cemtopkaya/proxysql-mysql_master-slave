@@ -1,0 +1,25 @@
+log_level: debug
+# v1
+# production:
+#   session_store: redis_store
+#   log_level: debug
+
+# v2
+# production:
+#   session_store: redis_store
+#   redis_store:
+#     host: 'redis'
+
+# v3
+production:
+  key: 'redmine_session'
+
+
+# v3
+  # redis_session_store:
+  #   key: 'redmine_session'
+  #   redis: &redis
+  #     host: 'redis'
+  #     port: 6379
+  #     db: 0
+  #     namespace: 'redmine:session'

@@ -1,0 +1,46 @@
+# Önce mysql master servisini başlat
+# - monitor_user ve monitor_password ile monitor kullanıcısı oluşturuyoruz.
+# - proxysql
+
+# ve ardından mysql slave servislerini oluşturuyoruz.
+# Sonra proxysql ve phpmyadmin servislerini oluşturuyoruz.
+
+services:
+  redmine:
+    user: root
+    # image: redmine:5.0.2
+    image: redmine:redis
+    container_name: redmine
+    hostname: redmine
+    ports:
+      - "3000:3000"
+    environment:
+      TZ: Europe/Istanbul
+      REDMINE_REDIS_HOST: redis
+      REDMINE_REDIS_PORT: 6379
+      REDMINE_REDIS_DB: 0
+      REDMINE_REDIS_NAMESPACE: session:redmine
+    volumes:
+      - ./volume/redmine/config/configuration.yml:/usr/src/redmine/config/configuration.yml
+      - ./volume/redmine/config/session_store.rb:/usr/src/redmine/config/initializers/session_store.rb
+      - ./volume/redmine/config/Gemfile:/usr/src/redmine/Gemfile
+
+      # - ./volume/redmine/conf:/usr/src/redmine/config
+    links:
+      - redis
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - redis_data:/data
+    environment:
+      - TZ=Europe/Istanbul
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
